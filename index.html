@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Letterbox — write & send</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { fontFamily: {
+      sans: ['Inter', 'system-ui', 'sans-serif'],
+      mono: ['JetBrains Mono', 'monospace']
+    } } }
+  }
+</script>
+<style>
+  /* ---------- devcard-style field system ---------- */
+  .field-input{
+    width:100%;background:#FAFBFC;border:1.5px solid #E4E6EA;border-radius:12px;
+    font-family:'Inter',sans-serif;font-size:13.5px;padding:9px 12px;outline:none;
+    box-shadow:0 1px 2px rgba(20,22,26,.02);
+    transition:border-color .15s ease, background .15s ease, box-shadow .15s ease, transform .1s ease;
+  }
+  .field-input:hover{ border-color:#C7CCD4; }
+  .field-input:focus{ border-color:#3A67D8; background:#fff; box-shadow:0 0 0 3.5px rgba(58,103,216,.12); }
+  .field-input::placeholder{ color:#AEB3BC; }
+  .dark .field-input{ border-color:#33363D; background:#121417; color:#E7E9EC; box-shadow:none; }
+  .dark .field-input:hover{ border-color:#43464D; }
+  .dark .field-input:focus{ border-color:#3A67D8; background:#1A1C21; box-shadow:0 0 0 3.5px rgba(58,103,216,.18); }
+  .dark .field-input::placeholder{ color:#5C6069; }
+
+  .field-group-label{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:#8A8F98; font-weight:600;
+  }
+
+  .field-section{
+    border:1.5px solid #ECEDF0; border-radius:16px; padding:13px 14px 14px; background:#FCFCFD;
+    display:flex; flex-direction:column; gap:12px; transition:border-color .15s ease;
+  }
+  .field-section:focus-within{ border-color:#D7DBE1; }
+  .dark .field-section{ border-color:#282A30; background:#191B1F; }
+  .dark .field-section:focus-within{ border-color:#33363D; }
+
+  /* ---------- upload row (photo attach) ---------- */
+  .upload-row{
+    display:flex; align-items:center; gap:10px; padding:8px 9px 8px 8px;
+    border:1.5px dashed #D7DBE1; border-radius:14px; background:#FAFBFC;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .upload-row:hover{ border-color:#7c1d1d; background:rgba(124,29,29,.03); }
+  .dark .upload-row{ border-color:#33363D; background:#121417; }
+  .dark .upload-row:hover{ border-color:#7c1d1d; background:rgba(124,29,29,.06); }
+  .upload-row-text{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+  .upload-row-title{ font-size:12px; font-weight:700; color:#1E2126; }
+  .dark .upload-row-title{ color:#E7E9EC; }
+  .upload-row-hint{ font-size:10px; color:#8A8F98; }
+  .dark .upload-row-hint{ color:#9AA3AE; }
+  .upload-row-btn{
+    display:flex; align-items:center; gap:5px; height:30px; padding:0 11px;
+    border-radius:9px; border:none; background:#1E2126; color:#fff;
+    font-weight:700; font-size:11px; cursor:pointer; transition:opacity .15s ease;
+  }
+  .upload-row-btn:hover{ opacity:.88; }
+  .dark .upload-row-btn{ background:#E7E9EC; color:#15171B; }
+  .upload-row-btn-remove{ background:#FCEAE7; color:#C13535; }
+  .dark .upload-row-btn-remove{ background:#2A1E1E; color:#FF7A6E; }
+
+  /* ---------- photo inside the stamp ---------- */
+  .stamp-photo{
+    position:absolute; inset:0; background-size:cover; background-position:center;
+  }
+
+  /* ---------- letter / envelope (color-driven by palette variables) ---------- */
+  .perspective{ perspective:1600px; width:100%; max-width:440px; }
+  .envelope-wrap{
+    position:relative; width:100%; aspect-ratio:16/11; cursor:pointer;
+    --ink:#3a1414; --ink-soft:#5b4646; --accent:#7c1d1d; --accent-deep:#5c1212;
+    --accent-soft:rgba(92,18,18,.6); --paper:#fcfaf7; --paper-border:#e7dfd6;
+    --divider:#f0d9d9; --divider2:#f4e5e5; --stamp-bg:#fbf3f0; --stamp-border:#d8c3c3;
+    --stamp-txt:#c69; --flap-bg:#efefef; --label-txt:#a99;
+  }
+
+  .letter{
+    position:absolute; left:50%; top:0; transform:translateX(-50%);
+    width:90%; height:96%; background:var(--paper);
+    box-shadow:0 24px 50px rgba(0,0,0,.35);
+    border:1px solid var(--paper-border); padding:26px 24px; z-index:1;
+    transition:transform .7s cubic-bezier(.22,1,.36,1), box-shadow .7s ease, background .3s ease, border-color .3s ease;
+  }
+  .envelope-wrap.open .letter{
+    transform:translateX(-50%) translateY(-58%); z-index:50;
+    box-shadow:0 40px 70px rgba(0,0,0,.45);
+  }
+  .letter-inner{
+    height:100%; border:1px solid var(--divider); padding:18px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    font-family:'Crimson Text', serif; transition:border-color .3s ease;
+  }
+  .letter-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .letter-to{ font-family:'Dancing Script', cursive; font-size:28px; color:var(--ink); line-height:1; transition:color .3s ease; }
+  .letter-msg{
+    font-size:13.5px; font-style:italic; color:var(--ink-soft); max-width:230px; line-height:1.55;
+    margin-top:8px; white-space:pre-wrap; word-break:break-word; transition:color .3s ease;
+  }
+  .stamp{
+    width:52px; height:74px; border:1px dotted var(--stamp-border); background:var(--stamp-bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;
+    transition:background .3s ease, border-color .3s ease; position:relative; overflow:hidden;
+  }
+  .stamp .lbl{ font-size:7px; letter-spacing:.18em; text-transform:uppercase; color:var(--stamp-txt); margin-bottom:4px; }
+  .stamp .heart{ color:var(--accent); font-size:20px; }
+  .letter-cta{ text-align:center; }
+  .letter-cta p{ font-size:16px; font-weight:700; font-style:italic; text-transform:uppercase; letter-spacing:.12em; color:var(--accent-deep); transition:color .3s ease; }
+  .letter-foot{ display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid var(--divider2); padding-top:12px; }
+  .letter-foot .note{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-style:italic; color:var(--accent-soft); max-width:140px; line-height:1.4; }
+  .letter-foot .from-lbl{ font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--label-txt); text-align:right; }
+  .letter-foot .from{ font-family:'Dancing Script', cursive; font-size:22px; color:var(--accent-deep); text-align:right; transition:color .3s ease; }
+
+  .envelope-body{ position:absolute; inset:0; background:#fbfbfb; border:1px solid var(--paper-border); box-shadow:0 12px 30px rgba(0,0,0,.25); overflow:hidden; z-index:3; transition:border-color .3s ease; }
+  .envelope-body::before{ content:""; position:absolute; inset:0; background:linear-gradient(35deg, #ffffff 50%, #f2eeea 50.1%); z-index:2; }
+  .seal{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:52px; height:52px; border-radius:50%; background:var(--accent);
+    box-shadow:0 4px 10px rgba(0,0,0,.3); border:1px solid var(--accent-deep);
+    display:flex; align-items:center; justify-content:center; z-index:4; transition:transform .5s ease, background .3s ease, border-color .3s ease;
+  }
+  .seal span{ color:#f3c9c9; font-size:20px; }
+  .envelope-wrap.open .seal{ transform:translate(-50%,-50%) scale(1.12) rotate(14deg); }
+  .envelope-label{ position:absolute; bottom:14px; width:100%; text-align:center; z-index:4; }
+  .envelope-label p{ font-family:'JetBrains Mono', monospace; font-weight:700; text-transform:uppercase; letter-spacing:.34em; font-size:10px; color:var(--accent-deep); transition:color .3s ease; }
+  .flap{
+    position:absolute; top:0; left:0; width:100%; height:52%; background:var(--flap-bg);
+    transform-origin:top; clip-path:polygon(0 0, 50% 100%, 100% 0); z-index:4;
+    box-shadow:0 1px 2px rgba(0,0,0,.08); transition:transform .5s ease-in-out, background .3s ease;
+  }
+  .envelope-wrap.open .flap{ transform:rotateX(180deg); }
+  .prompt{ position:absolute; bottom:-30px; left:0; width:100%; text-align:center; font-size:10px; letter-spacing:.32em; text-transform:uppercase; color:#8A8F98; }
+  .dark .prompt{ color:#5C6069; }
+  .envelope-wrap.open .prompt{ opacity:0; }
+
+  /* ---------- card style variants (distinct designs) ---------- */
+
+  /* TICKET — boarding-pass style stub with a perforated divider */
+  .envelope-wrap[data-style="ticket"] .letter{ border-radius:10px; }
+  .envelope-wrap[data-style="ticket"] .letter-inner{
+    font-family:'JetBrains Mono', monospace; border:none; padding:0;
+  }
+  .envelope-wrap[data-style="ticket"] .letter-to{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:19px; letter-spacing:-.01em; }
+  .envelope-wrap[data-style="ticket"] .letter-msg{ font-style:normal; font-size:12px; }
+  .envelope-wrap[data-style="ticket"] .stamp{
+    width:44px; height:44px; border-radius:50%; border:2px solid var(--accent); background:none;
+  }
+  .envelope-wrap[data-style="ticket"] .stamp .lbl{ display:none; }
+  .envelope-wrap[data-style="ticket"] .stamp .heart{ font-size:15px; color:var(--accent); }
+  .envelope-wrap[data-style="ticket"] .letter-cta{
+    position:relative; text-align:center; margin:18px 0; padding:10px 0;
+    border-top:2px dashed var(--divider2); border-bottom:2px dashed var(--divider2);
+  }
+  .envelope-wrap[data-style="ticket"] .letter-cta::before,
+  .envelope-wrap[data-style="ticket"] .letter-cta::after{
+    content:''; position:absolute; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; border-radius:50%;
+    background:var(--paper); border:1.5px solid var(--divider2);
+    box-shadow:0 1px 2px rgba(0,0,0,.12);
+  }
+  .envelope-wrap[data-style="ticket"] .letter-cta::before{ left:-34px; }
+  .envelope-wrap[data-style="ticket"] .letter-cta::after{ right:-34px; }
+  .envelope-wrap[data-style="ticket"] .letter-cta p{
+    font-family:'JetBrains Mono', monospace; font-style:normal; letter-spacing:.16em; font-size:13px;
+  }
+  .envelope-wrap[data-style="ticket"] .letter-foot{ border-top:none; justify-content:space-between; }
+  .envelope-wrap[data-style="ticket"] .letter-foot .note{ font-style:normal; }
+  .envelope-wrap[data-style="ticket"] .letter-foot .from{ font-family:'JetBrains Mono', monospace; font-size:17px; }
+  .envelope-wrap[data-style="ticket"] .seal{
+    border-radius:6px; width:44px; height:44px; background:repeating-linear-gradient(90deg, var(--accent) 0 3px, var(--accent-deep) 3px 5px);
+  }
+  .envelope-wrap[data-style="ticket"] .seal span{ display:none; }
+  .envelope-wrap[data-style="ticket"] .envelope-label p{ letter-spacing:.2em; }
+
+  /* PARCHMENT — deckled edge, ornate double border, wax-drip seal */
+  .envelope-wrap[data-style="parchment"] .letter{
+    clip-path:polygon(0 1%,2% 0,98% 0,100% 1%,100% 99%,98% 100%,2% 100%,0 99%);
+    box-shadow:0 26px 55px rgba(0,0,0,.4);
+  }
+  .envelope-wrap[data-style="parchment"] .letter-inner{
+    border:3px double var(--accent); padding:20px 16px;
+  }
+  .envelope-wrap[data-style="parchment"] .letter-to{ font-size:26px; }
+  .envelope-wrap[data-style="parchment"] .letter-cta p{ font-size:15px; }
+  .envelope-wrap[data-style="parchment"] .seal{
+    width:58px; height:58px; border-radius:46% 54% 55% 45% / 55% 45% 55% 45%;
+  }
+  .envelope-wrap[data-style="parchment"] .seal span{ font-size:22px; }
+  .envelope-wrap[data-style="parchment"] .flap{ box-shadow:0 2px 4px rgba(0,0,0,.15); }
+
+  /* MINIMAL — understated, hairline rule, no stamp or ornament */
+  .envelope-wrap[data-style="minimal"] .letter{ box-shadow:0 16px 32px rgba(0,0,0,.16); }
+  .envelope-wrap[data-style="minimal"] .letter-inner{ border:none; font-family:'Inter',sans-serif; padding:4px; }
+  .envelope-wrap[data-style="minimal"] .letter-to{ font-family:'Inter',sans-serif; font-weight:700; font-size:18px; color:var(--ink); }
+  .envelope-wrap[data-style="minimal"] .letter-msg{ font-style:normal; font-size:12.5px; }
+  .envelope-wrap[data-style="minimal"] .stamp{ display:none; }
+  .envelope-wrap[data-style="minimal"] .letter-cta{ text-align:left; margin:20px 0; border-top:1px solid var(--divider2); padding-top:16px; }
+  .envelope-wrap[data-style="minimal"] .letter-cta p{
+    font-style:normal; text-transform:none; letter-spacing:0; font-size:14px; font-weight:600; color:var(--ink-soft);
+  }
+  .envelope-wrap[data-style="minimal"] .letter-foot{ border-top:1px solid var(--divider2); }
+  .envelope-wrap[data-style="minimal"] .letter-foot .note{ font-style:normal; text-transform:none; letter-spacing:0; }
+  .envelope-wrap[data-style="minimal"] .letter-foot .from-lbl{ font-style:normal; }
+  .envelope-wrap[data-style="minimal"] .letter-foot .from{ font-family:'Inter',sans-serif; font-size:15px; font-weight:700; }
+  .envelope-wrap[data-style="minimal"] .seal{ width:14px; height:14px; box-shadow:none; border:none; }
+  .envelope-wrap[data-style="minimal"] .seal span{ display:none; }
+  .envelope-wrap[data-style="minimal"] .flap{ background:var(--paper); }
+  .envelope-wrap[data-style="minimal"] .envelope-body{ background:var(--paper); }
+  .envelope-wrap[data-style="minimal"] .envelope-body::before{ background:none; }
+  .envelope-wrap[data-style="minimal"] .envelope-label p{ font-weight:600; letter-spacing:.16em; color:var(--ink-soft); }
+
+  /* TYPEWRITER — ruled paper, monospace, ink-stamp seal */
+  .envelope-wrap[data-style="typewriter"] .letter{ background-image:repeating-linear-gradient(var(--paper) 0 27px, var(--divider2) 27px 28px); }
+  .envelope-wrap[data-style="typewriter"] .letter-inner{ font-family:'JetBrains Mono', monospace; border:none; padding:6px 18px; }
+  .envelope-wrap[data-style="typewriter"] .letter-to{ font-family:'JetBrains Mono', monospace; font-size:20px; letter-spacing:-.02em; }
+  .envelope-wrap[data-style="typewriter"] .letter-msg{ font-style:normal; font-size:12.5px; }
+  .envelope-wrap[data-style="typewriter"] .letter-cta p{ font-family:'JetBrains Mono', monospace; font-style:normal; }
+  .envelope-wrap[data-style="typewriter"] .letter-foot .from{ font-family:'JetBrains Mono', monospace; }
+  .envelope-wrap[data-style="typewriter"] .stamp{ border-radius:2px; }
+  .envelope-wrap[data-style="typewriter"] .seal{
+    border-radius:50%; border:3px dashed var(--accent-deep); background:transparent; transform:translate(-50%,-50%) rotate(-8deg);
+  }
+  .envelope-wrap[data-style="typewriter"].open .seal{ transform:translate(-50%,-50%) rotate(-8deg) scale(1.1); }
+  .envelope-wrap[data-style="typewriter"] .seal span{ color:var(--accent-deep); font-size:16px; }
+
+  /* BOARDING PASS — striped header, gate/seat-style meta, notch + barcode stub */
+  .envelope-wrap[data-style="boardingpass"] .letter{
+    border-radius:14px; padding-top:34px; overflow:hidden; position:relative;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:13px; z-index:1;
+    background:repeating-linear-gradient(135deg, var(--accent) 0 10px, #1E2126 10px 20px);
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter::after{
+    content:''; position:absolute; top:7px; right:58px; width:14px; height:14px; border-radius:50%;
+    background:#F1F2F4; z-index:2;
+  }
+  .dark .envelope-wrap[data-style="boardingpass"] .letter::after{ background:#1A1C21; }
+  .envelope-wrap[data-style="boardingpass"] .letter-inner{
+    border:none; padding:0; display:grid;
+    grid-template-columns:1fr 44px; grid-template-rows:auto 1fr auto;
+    column-gap:14px; row-gap:12px;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-head{ display:contents; }
+  .envelope-wrap[data-style="boardingpass"] .letter-head > div:first-child{ grid-column:1; grid-row:1; }
+  .envelope-wrap[data-style="boardingpass"] .letter-head > div:first-child::before{
+    content:'BOARDING PASS'; display:block; font-family:'JetBrains Mono',monospace; font-weight:700;
+    font-size:9px; letter-spacing:.16em; color:var(--accent); margin-bottom:7px;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-to{
+    font-family:'Inter',sans-serif; font-weight:800; font-size:19px; color:var(--ink); letter-spacing:-.01em;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-msg{
+    font-style:normal; font-size:11.5px; margin-top:6px; max-width:100%;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-cta{
+    grid-column:1; grid-row:2; text-align:left; margin:0; align-self:end;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-cta::before{
+    content:'STATUS'; display:block; font-family:'JetBrains Mono',monospace; font-size:8.5px;
+    letter-spacing:.14em; color:#8A8F98; margin-bottom:3px;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-cta p{
+    font-family:'Inter',sans-serif; font-weight:800; font-size:14px; text-transform:none;
+    letter-spacing:0; font-style:normal; color:#2f9e5c;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-foot{
+    grid-column:1; grid-row:3; border-top:1.5px dashed var(--divider2); padding-top:10px;
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-foot .note{
+    font-style:normal; text-transform:none; letter-spacing:0; font-size:12.5px; font-weight:700;
+    color:var(--ink); max-width:none;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-foot .note::before{
+    content:'MESSAGE'; display:block; font-family:'JetBrains Mono',monospace; font-size:8px;
+    letter-spacing:.14em; color:#8A8F98; font-weight:700; margin-bottom:3px;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-foot .from-lbl{ font-size:0; }
+  .envelope-wrap[data-style="boardingpass"] .letter-foot .from-lbl::before{
+    content:'FROM'; font-size:8px; font-family:'JetBrains Mono',monospace; font-weight:700;
+    letter-spacing:.14em; text-transform:uppercase; color:#8A8F98;
+  }
+  .envelope-wrap[data-style="boardingpass"] .letter-foot .from{
+    font-family:'Inter',sans-serif; font-weight:800; font-size:14px; text-align:left; margin-top:3px;
+  }
+  .envelope-wrap[data-style="boardingpass"] .stamp{
+    grid-column:2; grid-row:1/4; width:auto; height:100%; border:none; border-left:1.5px dashed var(--divider2);
+    border-radius:0; background:none; display:flex; flex-direction:column; align-items:center;
+    justify-content:space-between; padding:12px 0;
+  }
+  .envelope-wrap[data-style="boardingpass"] .stamp .lbl{ display:none; }
+  .envelope-wrap[data-style="boardingpass"] .stamp .heart{ display:none; }
+  .envelope-wrap[data-style="boardingpass"] .stamp::before{
+    content:'LETTERBOX'; writing-mode:vertical-rl; font-family:'JetBrains Mono',monospace; font-size:9px;
+    letter-spacing:.22em; color:#8A8F98; font-weight:700;
+  }
+  .envelope-wrap[data-style="boardingpass"] .stamp::after{
+    content:''; width:24px; height:34px; margin-top:auto;
+    background:repeating-linear-gradient(90deg, var(--accent) 0 2px, transparent 2px 4px);
+  }
+
+  .envelope-wrap[data-style="ribbon"] .letter{ overflow:hidden; }
+  .envelope-wrap[data-style="ribbon"] .letter::before{
+    content:'FOR YOU'; position:absolute; top:16px; right:-34px; width:130px; text-align:center;
+    transform:rotate(40deg); background:var(--accent); color:#fff; font:700 9px/26px 'JetBrains Mono',monospace;
+    letter-spacing:.18em; box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2;
+  }
+  .envelope-wrap[data-style="ribbon"] .seal{
+    width:0; height:0; border-radius:0; background:none; box-shadow:none; border:none;
+  }
+  .envelope-wrap[data-style="ribbon"] .seal::before, .envelope-wrap[data-style="ribbon"] .seal::after{
+    content:''; position:absolute; width:22px; height:16px; background:var(--accent); top:-8px;
+  }
+  .envelope-wrap[data-style="ribbon"] .seal::before{ left:-20px; border-radius:16px 2px 2px 16px; transform:rotate(18deg); }
+  .envelope-wrap[data-style="ribbon"] .seal::after{ left:-2px; border-radius:2px 16px 16px 2px; transform:rotate(-18deg); }
+  .envelope-wrap[data-style="ribbon"] .seal span{ display:none; }
+
+  /* POLAROID — thick photo-style frame with taped corners */
+  .envelope-wrap[data-style="polaroid"] .letter{ padding:14px 14px 34px; background:#fff; box-shadow:0 22px 46px rgba(0,0,0,.32); }
+  .envelope-wrap[data-style="polaroid"] .letter::before, .envelope-wrap[data-style="polaroid"] .letter::after{
+    content:''; position:absolute; top:-8px; width:38px; height:16px; background:rgba(255,255,255,.55);
+    border:1px solid rgba(0,0,0,.06); box-shadow:0 1px 2px rgba(0,0,0,.12);
+  }
+  .envelope-wrap[data-style="polaroid"] .letter::before{ left:14px; transform:rotate(-8deg); }
+  .envelope-wrap[data-style="polaroid"] .letter::after{ right:14px; transform:rotate(8deg); }
+  .envelope-wrap[data-style="polaroid"] .letter-inner{ border:1px solid var(--divider); font-family:'Dancing Script', cursive; }
+  .envelope-wrap[data-style="polaroid"] .letter-to{ font-size:30px; }
+  .envelope-wrap[data-style="polaroid"] .letter-cta p{ font-family:'Dancing Script', cursive; font-size:22px; font-style:normal; text-transform:none; letter-spacing:0; }
+  .envelope-wrap[data-style="polaroid"] .seal{ border-radius:50%; }
+
+  /* SHOWCASE — dotted rule, oversized italic script announcement, dotted-punch stamp */
+  .envelope-wrap[data-style="showcase"] .letter{ border-radius:4px; }
+  .envelope-wrap[data-style="showcase"] .letter-inner{ border:none; padding:14px 6px; }
+  .envelope-wrap[data-style="showcase"] .letter-head{
+    border-bottom:1.5px dashed var(--divider2); padding-bottom:12px; margin-bottom:2px;
+  }
+  .envelope-wrap[data-style="showcase"] .letter-to{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:12px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+  }
+  .envelope-wrap[data-style="showcase"] .letter-msg{ font-style:normal; font-size:12px; }
+  .envelope-wrap[data-style="showcase"] .stamp{
+    width:40px; height:40px; border-radius:50%; background:none;
+    border:1.5px dotted var(--accent);
+  }
+  .envelope-wrap[data-style="showcase"] .stamp .lbl{ display:none; }
+  .envelope-wrap[data-style="showcase"] .stamp .heart{ font-size:14px; }
+  .envelope-wrap[data-style="showcase"] .letter-cta{ text-align:center; margin:14px 0 10px; }
+  .envelope-wrap[data-style="showcase"] .letter-cta p{
+    font-family:'Crimson Text', serif; font-style:italic; font-weight:700;
+    text-transform:none; letter-spacing:0; font-size:32px; line-height:.95; color:var(--accent);
+  }
+  .envelope-wrap[data-style="showcase"] .letter-foot{ border-top:1.5px dashed var(--divider2); }
+  .envelope-wrap[data-style="showcase"] .letter-foot .note{ font-style:normal; }
+  .envelope-wrap[data-style="showcase"] .seal{ border-radius:50%; }
+
+  /* CARTA — cream stationery, bold wordmark, paperclip corner, wax monogram */
+  .envelope-wrap[data-style="carta"] .letter{ border-radius:2px; }
+  .envelope-wrap[data-style="carta"] .letter-inner{ border:none; padding:16px 10px; }
+  .envelope-wrap[data-style="carta"] .letter-head{ position:relative; }
+  .envelope-wrap[data-style="carta"] .letter-to{
+    font-family:'Crimson Text', serif; font-weight:700; font-style:normal;
+    font-size:22px; letter-spacing:-.01em;
+  }
+  .envelope-wrap[data-style="carta"] .letter-msg{ font-style:normal; font-size:12.5px; }
+  .envelope-wrap[data-style="carta"] .stamp{
+    width:22px; height:22px; border-radius:50%; background:none; border:1.5px solid var(--accent);
+  }
+  .envelope-wrap[data-style="carta"] .stamp .lbl{ display:none; }
+  .envelope-wrap[data-style="carta"] .stamp .heart{ font-size:10px; }
+  .envelope-wrap[data-style="carta"] .stamp::before{
+    content:''; position:absolute; top:-16px; right:14px; width:9px; height:22px;
+    border:2px solid var(--accent-soft); border-radius:6px 6px 0 0; border-bottom:none; opacity:.55;
+  }
+  .envelope-wrap[data-style="carta"] .letter-cta{ text-align:left; margin:16px 0; }
+  .envelope-wrap[data-style="carta"] .letter-cta p{
+    font-family:'JetBrains Mono', monospace; font-weight:700; text-align:left;
+    text-transform:uppercase; letter-spacing:.06em; font-size:13px;
+  }
+  .envelope-wrap[data-style="carta"] .letter-foot{ border-top:1px solid var(--divider2); }
+  .envelope-wrap[data-style="carta"] .letter-foot .note{ font-style:normal; text-align:left; max-width:160px; }
+  .envelope-wrap[data-style="carta"] .seal{ border-radius:50%; }
+  .envelope-wrap[data-style="carta"] .seal span{ font-size:14px; }
+
+  /* BEAUSTICE — heart die-cut tab, corner hearts, oversized script wordmark */
+  .envelope-wrap[data-style="beaustice"] .letter{ border-radius:6px; padding-top:34px; overflow:visible; }
+  .envelope-wrap[data-style="beaustice"] .letter::before{
+    content:'♥'; position:absolute; top:-16px; left:50%; transform:translateX(-50%);
+    font-size:26px; line-height:1; color:var(--accent); background:var(--paper);
+    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 -2px 0 var(--paper);
+  }
+  .envelope-wrap[data-style="beaustice"] .letter-inner{ border:none; padding:6px 16px 16px; position:relative; }
+  .envelope-wrap[data-style="beaustice"] .letter-inner::before,
+  .envelope-wrap[data-style="beaustice"] .letter-inner::after{
+    content:'♥'; position:absolute; top:0; font-size:9px; color:var(--accent-soft);
+  }
+  .envelope-wrap[data-style="beaustice"] .letter-inner::before{ left:0; }
+  .envelope-wrap[data-style="beaustice"] .letter-inner::after{ right:0; }
+  .envelope-wrap[data-style="beaustice"] .letter-head{ flex-direction:column; align-items:center; text-align:center; }
+  .envelope-wrap[data-style="beaustice"] .letter-to{
+    font-family:'Dancing Script', cursive; font-weight:700; font-size:36px;
+  }
+  .envelope-wrap[data-style="beaustice"] .letter-msg{ text-align:center; max-width:100%; margin-top:4px; }
+  .envelope-wrap[data-style="beaustice"] .stamp{ display:none; }
+  .envelope-wrap[data-style="beaustice"] .letter-cta{ position:relative; margin:14px 0; }
+  .envelope-wrap[data-style="beaustice"] .letter-cta::before,
+  .envelope-wrap[data-style="beaustice"] .letter-cta::after{
+    content:'♥'; font-size:8px; color:var(--accent); position:absolute; bottom:2px;
+  }
+  .envelope-wrap[data-style="beaustice"] .letter-cta::before{ left:8px; }
+  .envelope-wrap[data-style="beaustice"] .letter-cta::after{ right:8px; }
+  .envelope-wrap[data-style="beaustice"] .letter-cta p{
+    font-family:'Dancing Script', cursive; font-weight:700; font-style:normal;
+    text-transform:none; letter-spacing:0; font-size:24px;
+  }
+  .envelope-wrap[data-style="beaustice"] .letter-foot{ justify-content:center; text-align:center; border-top:none; }
+  .envelope-wrap[data-style="beaustice"] .letter-foot .note{ display:none; }
+  .envelope-wrap[data-style="beaustice"] .letter-foot > div{ text-align:center !important; }
+  .envelope-wrap[data-style="beaustice"] .seal{ border-radius:50%; }
+
+  /* SPECSHEET — minimal document, small-caps subhead, dense body, quiet footer */
+  .envelope-wrap[data-style="specsheet"] .letter{ border-radius:2px; }
+  .envelope-wrap[data-style="specsheet"] .letter-inner{ border:none; padding:20px 16px; }
+  .envelope-wrap[data-style="specsheet"] .letter-head{ flex-direction:column; align-items:center; text-align:center; gap:4px; }
+  .envelope-wrap[data-style="specsheet"] .letter-to{
+    font-family:'JetBrains Mono', monospace; font-weight:600; font-size:10px;
+    letter-spacing:.2em; text-transform:uppercase; color:var(--label-txt);
+  }
+  .envelope-wrap[data-style="specsheet"] .letter-msg{
+    font-family:'Crimson Text', serif; font-style:normal; text-align:center; max-width:100%;
+    font-size:12.5px; margin-top:2px;
+  }
+  .envelope-wrap[data-style="specsheet"] .stamp{ display:none; }
+  .envelope-wrap[data-style="specsheet"] .letter-cta{
+    margin:16px 0; padding:12px 0; border-top:1px solid var(--divider2); border-bottom:1px solid var(--divider2);
+  }
+  .envelope-wrap[data-style="specsheet"] .letter-cta p{
+    font-family:'Crimson Text', serif; font-style:italic; font-weight:400;
+    text-transform:none; letter-spacing:0; font-size:20px; color:var(--ink);
+  }
+  .envelope-wrap[data-style="specsheet"] .letter-foot{ flex-direction:column; align-items:center; gap:4px; border-top:none; text-align:center; }
+  .envelope-wrap[data-style="specsheet"] .letter-foot .note{ font-style:normal; text-align:center; max-width:100%; }
+  .envelope-wrap[data-style="specsheet"] .letter-foot > div{ text-align:center !important; }
+  .envelope-wrap[data-style="specsheet"] .letter-foot .from-lbl{ text-align:center; }
+  .envelope-wrap[data-style="specsheet"] .letter-foot .from{ text-align:center; font-size:18px; }
+  .envelope-wrap[data-style="specsheet"] .seal{ display:none; }
+
+  /* PORTICO — bordered box, bold script title, structured meta, dot-triad divider */
+  .envelope-wrap[data-style="portico"] .letter{ border-radius:2px; }
+  .envelope-wrap[data-style="portico"] .letter-inner{ border:1.5px solid var(--divider2); padding:20px 16px; }
+  .envelope-wrap[data-style="portico"] .letter-head{ flex-direction:column; align-items:center; text-align:center; }
+  .envelope-wrap[data-style="portico"] .letter-to{ font-size:26px; }
+  .envelope-wrap[data-style="portico"] .letter-msg{
+    text-align:center; max-width:100%; font-style:normal;
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:.04em;
+  }
+  .envelope-wrap[data-style="portico"] .stamp{ display:none; }
+  .envelope-wrap[data-style="portico"] .letter-cta{ position:relative; margin:16px 0; }
+  .envelope-wrap[data-style="portico"] .letter-cta::before{
+    content:'• • •'; display:block; color:var(--accent-soft); font-size:10px; letter-spacing:.3em; margin-bottom:8px;
+  }
+  .envelope-wrap[data-style="portico"] .letter-cta p{
+    font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px; letter-spacing:.1em;
+  }
+  .envelope-wrap[data-style="portico"] .letter-foot{ flex-direction:column; align-items:center; gap:6px; border-top:1px dashed var(--divider2); text-align:center; }
+  .envelope-wrap[data-style="portico"] .letter-foot .note{ text-align:center; max-width:100%; }
+  .envelope-wrap[data-style="portico"] .letter-foot > div{ text-align:center !important; }
+  .envelope-wrap[data-style="portico"] .seal{ border-radius:6px; }
+
+  .envelope-wrap[data-style="ticket"] .letter{ border-radius:10px; }
+  .envelope-wrap[data-style="ticket"] .letter-inner{
+    font-family:'JetBrains Mono', monospace; border:none; padding:0;
+  }
+  .envelope-wrap[data-style="ticket"] .letter-to{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:19px; letter-spacing:-.01em; }
+  .envelope-wrap[data-style="ticket"] .letter-msg{ font-style:normal; font-size:12px; }
+  .envelope-wrap[data-style="ticket"] .stamp{
+    width:44px; height:44px; border-radius:50%; border:2px solid var(--accent); background:none;
+  }
+  .envelope-wrap[data-style="ticket"] .stamp .lbl{ display:none; }
+  .envelope-wrap[data-style="ticket"] .stamp .heart{ font-size:15px; color:var(--accent); }
+  .envelope-wrap[data-style="ticket"] .letter-cta{
+    position:relative; text-align:center; margin:18px 0; padding:10px 0;
+    border-top:2px dashed var(--divider2); border-bottom:2px dashed var(--divider2);
+  }
+  .envelope-wrap[data-style="ticket"] .letter-cta::before,
+  .envelope-wrap[data-style="ticket"] .letter-cta::after{
+    content:''; position:absolute; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; border-radius:50%;
+    background:var(--paper); border:1.5px solid var(--divider2);
+    box-shadow:0 1px 2px rgba(0,0,0,.12);
+  }
+  .envelope-wrap[data-style="ticket"] .letter-cta::before{ left:-34px; }
+  .envelope-wrap[data-style="ticket"] .letter-cta::after{ right:-34px; }
+  .envelope-wrap[data-style="ticket"] .letter-cta p{
+    font-family:'JetBrains Mono', monospace; font-style:normal; letter-spacing:.16em; font-size:13px;
+  }
+  .envelope-wrap[data-style="ticket"] .letter-foot{ border-top:none; justify-content:space-between; }
+  .envelope-wrap[data-style="ticket"] .letter-foot .note{ font-style:normal; }
+  .envelope-wrap[data-style="ticket"] .letter-foot .from{ font-family:'JetBrains Mono', monospace; font-size:17px; }
+  .envelope-wrap[data-style="ticket"] .seal{
+    border-radius:6px; width:44px; height:44px; background:repeating-linear-gradient(90deg, var(--accent) 0 3px, var(--accent-deep) 3px 5px);
+  }
+  .envelope-wrap[data-style="ticket"] .seal span{ display:none; }
+  .envelope-wrap[data-style="ticket"] .envelope-label p{ letter-spacing:.2em; }
+
+  /* ---------- palette swatches (editor UI) ---------- */
+  .palette-swatch{
+    width:30px; height:30px; border-radius:9999px; cursor:pointer; flex-shrink:0;
+    border:2px solid transparent; transition:border-color .15s ease, transform .1s ease;
+  }
+  .palette-swatch:hover{ transform:scale(1.08); }
+  .palette-swatch.active{ border-color:#1E2126; }
+  .dark .palette-swatch.active{ border-color:#E7E9EC; }
+  .style-card{
+    cursor:pointer; border:1.5px solid #E4E6EA; border-radius:12px; padding:8px;
+    display:flex; flex-direction:column; align-items:center; gap:5px; transition:border-color .15s ease, background .15s ease;
+  }
+  .dark .style-card{ border-color:#33363D; }
+  .style-card.active{ border-color:#7c1d1d; background:rgba(124,29,29,.05); }
+  .dark .style-card.active{ background:rgba(124,29,29,.12); }
+  .style-card .style-preview{ width:100%; height:38px; border-radius:6px; background:#fcfaf7; border:1px solid #e7dfd6; position:relative; overflow:hidden; }
+  .style-card .style-preview span{ position:absolute; top:6px; left:6px; width:16px; height:4px; border-radius:2px; background:#3a1414; }
+  .style-card .style-preview i{ position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:#7c1d1d; font-style:normal; }
+  .style-card[data-style-preview="ticket"] .style-preview{ border-style:dashed; }
+  .style-card[data-style-preview="ticket"] .style-preview i{ border-radius:2px; width:12px; height:12px; background:repeating-linear-gradient(90deg,#7c1d1d 0 2px,#5c1212 2px 3px); }
+  .style-card[data-style-preview="parchment"] .style-preview{ border-width:2px; border-style:double; }
+  .style-card[data-style-preview="parchment"] .style-preview i{ border-radius:46% 54% 55% 45% / 55% 45% 55% 45%; }
+  .style-card[data-style-preview="minimal"] .style-preview{ border:none; box-shadow:0 0 0 1px #e7dfd6 inset; }
+  .style-card[data-style-preview="minimal"] .style-preview i{ display:none; }
+  .style-card[data-style-preview="minimal"] .style-preview span{ background:#5b4646; width:20px; }
+  .style-card[data-style-preview="typewriter"] .style-preview{ background-image:repeating-linear-gradient(#fcfaf7 0 9px, #f0d9d9 9px 10px); }
+  .style-card[data-style-preview="typewriter"] .style-preview i{ border-radius:50%; background:none; border:2px dashed #5c1212; width:12px; height:12px; }
+  .style-card[data-style-preview="ribbon"] .style-preview{ overflow:hidden; }
+  .style-card[data-style-preview="ribbon"] .style-preview i{ border-radius:0; width:28px; height:8px; background:#7c1d1d; top:2px; right:-8px; left:auto; transform:rotate(40deg); }
+  .style-card[data-style-preview="polaroid"] .style-preview{ background:#fff; padding-bottom:6px; box-shadow:0 0 0 1px #e7dfd6 inset; }
+  .style-card[data-style-preview="polaroid"] .style-preview i{ border-radius:50%; }
+  .style-card[data-style-preview="boardingpass"] .style-preview{ padding-top:6px; position:relative; overflow:hidden; }
+  .style-card[data-style-preview="boardingpass"] .style-preview::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:5px;
+    background:repeating-linear-gradient(135deg,#7c1d1d 0 4px,#1E2126 4px 8px);
+  }
+  .style-card[data-style-preview="boardingpass"] .style-preview span{ background:#1E2126; width:22px; margin-top:2px; }
+  .style-card[data-style-preview="boardingpass"] .style-preview i{ border-radius:2px; width:8px; height:8px; background:repeating-linear-gradient(90deg,#7c1d1d 0 1.5px,transparent 1.5px 3px); right:5px; bottom:4px; }
+
+  .style-card[data-style-preview="showcase"] .style-preview{ border-style:dashed; }
+  .style-card[data-style-preview="showcase"] .style-preview span{ display:none; }
+  .style-card[data-style-preview="showcase"] .style-preview i{ border-radius:50%; border:1.5px dotted #7c1d1d; background:none; width:14px; height:14px; }
+  .style-card[data-style-preview="carta"] .style-preview span{ background:#7c1d1d; width:20px; }
+  .style-card[data-style-preview="carta"] .style-preview i{ border-radius:50%; width:8px; height:8px; }
+  .style-card[data-style-preview="carta"] .style-preview::after{
+    content:''; position:absolute; top:5px; right:6px; width:5px; height:12px;
+    border:1.5px solid #c69; border-radius:4px 4px 0 0; border-bottom:none;
+  }
+  .style-card[data-style-preview="beaustice"] .style-preview{ padding-top:6px; }
+  .style-card[data-style-preview="beaustice"] .style-preview span{ display:none; }
+  .style-card[data-style-preview="beaustice"] .style-preview::before{
+    content:'♥'; position:absolute; top:-2px; left:50%; transform:translateX(-50%);
+    font-size:10px; color:#7c1d1d; line-height:1;
+  }
+  .style-card[data-style-preview="beaustice"] .style-preview i{ border-radius:50%; left:50%; right:auto; bottom:6px; transform:translateX(-50%); }
+  .style-card[data-style-preview="specsheet"] .style-preview{ box-shadow:0 0 0 1px #e7dfd6 inset; }
+  .style-card[data-style-preview="specsheet"] .style-preview span{ background:#8A8F98; width:14px; left:50%; transform:translateX(-50%); }
+  .style-card[data-style-preview="specsheet"] .style-preview i{ display:none; }
+  .style-card[data-style-preview="portico"] .style-preview{ box-shadow:0 0 0 1px #e7dfd6 inset; }
+  .style-card[data-style-preview="portico"] .style-preview span{ display:none; }
+  .style-card[data-style-preview="portico"] .style-preview i{ border-radius:2px; width:16px; height:4px; left:50%; right:auto; bottom:6px; transform:translateX(-50%); }
+
+  /* ---------- scatter photos: spill out around the card on open ---------- */
+  .scatter-layer{ position:absolute; inset:0; z-index:12; pointer-events:none; }
+  .scatter-photo{
+    position:absolute; width:60px; height:60px; padding:4px;
+    background:#fff; box-shadow:0 12px 26px rgba(0,0,0,.32);
+    opacity:0; transform:translate(-50%,-50%) scale(.35) rotate(0deg);
+    transition:opacity .45s ease, transform .55s cubic-bezier(.22,1,.36,1), box-shadow .2s ease;
+    pointer-events:none; cursor:grab;
+  }
+  .envelope-wrap.open .scatter-photo{
+    opacity:1; transform:translate(-50%,-50%) scale(1) rotate(var(--rot,0deg));
+    pointer-events:auto;
+  }
+  .envelope-wrap.open .scatter-photo:hover{
+    z-index:20; box-shadow:0 20px 40px rgba(0,0,0,.42);
+  }
+  .scatter-inner{ position:relative; width:100%; height:100%; transform-origin:center; }
+  .envelope-wrap.open .scatter-photo:not(:hover) .scatter-inner{
+    animation: scatterBob var(--bob-dur,3.2s) ease-in-out infinite; animation-delay:var(--bob-delay,0s);
+  }
+  .envelope-wrap.open .scatter-photo:hover .scatter-inner{
+    transform:scale(1.16) translateY(-7px) rotate(-2deg); transition:transform .25s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes scatterBob{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-5px) rotate(2deg); }
+  }
+  .scatter-photo .scatter-img{ width:100%; height:100%; background-size:cover; background-position:center; }
+  /* optional washi-tape corner accent */
+  .scatter-layer.tape-on .scatter-photo::before{
+    content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%) rotate(-3deg);
+    width:30px; height:13px; background:rgba(230,208,166,.75); box-shadow:0 1px 2px rgba(0,0,0,.15);
+  }
+  .scatter-layer.tape-on .scatter-photo:nth-child(even)::before{ transform:translateX(-50%) rotate(4deg); background:rgba(216,167,167,.7); }
+
+  /* ---------- toggle switch ---------- */
+  .switch-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .switch{ position:relative; width:34px; height:19px; flex-shrink:0; }
+  .switch input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+  .switch-track{
+    position:absolute; inset:0; background:#D7DBE1; border-radius:999px; transition:background .15s ease;
+  }
+  .switch-track::before{
+    content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); transition:transform .15s ease;
+  }
+  .switch input:checked + .switch-track{ background:#7c1d1d; }
+  .switch input:checked + .switch-track::before{ transform:translateX(15px); }
+  .dark .switch-track{ background:#33363D; }
+
+  /* ---------- floating hearts, drift behind the welcome card ---------- */
+  .intro-hearts{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+  .intro-hearts span{
+    position:absolute; bottom:-10%; font-size:18px; color:rgba(124,29,29,.35);
+    animation: introFloat 3.4s ease-in forwards;
+  }
+  @keyframes introFloat{
+    0%{ transform:translateY(0) rotate(0deg); opacity:0; }
+    12%{ opacity:1; }
+    100%{ transform:translateY(-115vh) rotate(35deg); opacity:0; }
+  }
+
+  /* ---------- welcome modal wrapper ---------- */
+  .mini-modal-overlay{
+    position:fixed; inset:0; z-index:490; background:rgba(20,22,26,.55); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    opacity:0; animation: miniFadeIn .4s ease forwards;
+  }
+  .mini-modal-overlay.hidden{ display:none; }
+  @keyframes miniFadeIn{ to{ opacity:1; } }
+  .mini-modal-overlay .modal-card{
+    position:relative; z-index:1;
+    transform:scale(.9) translateY(8px); opacity:0;
+    animation: miniPop .5s cubic-bezier(.22,1,.36,1) forwards; animation-delay:.1s;
+  }
+  @keyframes miniPop{ to{ transform:scale(1) translateY(0); opacity:1; } }
+
+  /* mini toast, matching devcard */
+  #toastStack{
+    position:fixed; top:16px; right:16px; z-index:200;
+    display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+    pointer-events:none;
+  }
+  .mini-toast{
+    display:flex; align-items:center; gap:8px;
+    background:#1E2126; color:#F5F6F8; border:1px solid rgba(255,255,255,.08);
+    border-radius:11px; padding:8px 13px 8px 11px; box-shadow:0 8px 24px rgba(20,22,26,.28);
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600;
+    max-width:280px; pointer-events:auto;
+    opacity:0; transform:translateX(16px) scale(.97);
+    transition:opacity .22s ease, transform .22s ease;
+  }
+  .mini-toast.show{ opacity:1; transform:translateX(0) scale(1); }
+  .mini-toast.leaving{ opacity:0; transform:translateX(16px) scale(.97); }
+  .dark .mini-toast{ background:#26282D; border-color:rgba(255,255,255,.06); }
+  .mini-toast .toast-icon{ width:15px; height:15px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .mini-toast.toast-success .toast-icon{ color:#39FF88; }
+  .mini-toast.toast-error .toast-icon{ color:#FF7A6E; }
+  .mini-toast .toast-msg{ line-height:1.35; }
+
+  /* ---------- modal, devcard-style ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:300;
+    background:rgba(20,22,26,.42); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    opacity:0; pointer-events:none; transition:opacity .18s ease;
+  }
+  .modal-overlay.show{ opacity:1; pointer-events:auto; }
+  .modal-card{
+    width:100%; max-width:380px; max-height:85vh; overflow-y:auto;
+    background:#fff; border:2px dashed #D7DBE1; border-radius:22px;
+    padding:20px 22px 20px; box-shadow:0 20px 60px -20px rgba(0,0,0,.35);
+    transform:translateY(10px) scale(.97); transition:transform .2s cubic-bezier(.22,1,.36,1);
+  }
+  .modal-overlay.show .modal-card{ transform:translateY(0) scale(1); }
+  .dark .modal-card{ background:#1E2126; border-color:#33363D; }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .modal-title{ font-family:'Inter',sans-serif; font-weight:800; font-size:15.5px; letter-spacing:-.01em; color:#1E2126; }
+  .dark .modal-title{ color:#E7E9EC; }
+  .modal-close{
+    width:28px; height:28px; border-radius:9999px; border:none; cursor:pointer;
+    background:#F1F2F4; color:#8A8F98; display:flex; align-items:center; justify-content:center;
+    transition:background .15s ease, color .15s ease; flex-shrink:0;
+  }
+  .modal-close:hover{ background:#E7E8EB; color:#1E2126; }
+  .dark .modal-close{ background:#26282D; color:#9AA3AE; }
+  .dark .modal-close:hover{ background:#303339; color:#E7E9EC; }
+  .modal-badge-row{
+    display:flex; align-items:center; gap:12px; margin-bottom:16px;
+    border:1.5px solid #E4E6EA; border-radius:16px; padding:12px 14px;
+  }
+  .dark .modal-badge-row{ border-color:#33363D; }
+  .modal-badge{
+    width:44px; height:44px; border-radius:14px; background:#7c1d1d; color:#f3c9c9;
+    display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;
+  }
+  .modal-badge-text p:first-child{ font-weight:800; font-size:14px; line-height:1.25; color:#1E2126; }
+  .dark .modal-badge-text p:first-child{ color:#E7E9EC; }
+  .modal-badge-text p:last-child{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:#8A8F98; margin-top:2px; }
+  .modal-body p{ font-size:12.5px; line-height:1.6; color:rgba(30,33,38,.75); }
+  .dark .modal-body p{ color:rgba(231,233,236,.75); }
+  .link-row{ display:flex; gap:8px; margin-top:12px; }
+  .link-row .field-input{ flex:1; font-size:11.5px; font-family:'JetBrains Mono',monospace; }
+  .copy-now-btn{
+    flex-shrink:0; height:auto; padding:0 14px; border-radius:12px; border:none; cursor:pointer;
+    background:#7c1d1d; color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:11px;
+    transition:opacity .15s ease;
+  }
+  .copy-now-btn:hover{ opacity:.88; }
+  .about-list{ display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .about-list .step{ display:flex; align-items:flex-start; gap:10px; }
+  .about-list .step-num{
+    width:22px; height:22px; border-radius:9999px; background:#F1F2F4; color:#1E2126;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10.5px;
+  }
+  .dark .about-list .step-num{ background:#26282D; color:#E7E9EC; }
+  .about-list .step p{ font-size:12.5px; line-height:1.55; color:rgba(30,33,38,.75); }
+  .dark .about-list .step p{ color:rgba(231,233,236,.75); }
+  .about-list .step p b{ color:#1E2126; }
+  .dark .about-list .step p b{ color:#E7E9EC; }
+  .modal-foot-note{
+    font-size:11px; line-height:1.55; color:#8A8F98; margin-top:14px;
+    border-top:1px solid #EEEFF1; padding-top:12px;
+  }
+  .dark .modal-foot-note{ color:#9AA3AE; border-color:#2A2D33; }
+
+  /* ---------- dark share-card variant (always dark, matches app icon style) ---------- */
+  .modal-card-dark{
+    background:#1a1c20 !important; border:1px solid rgba(255,255,255,.08) !important;
+    border-radius:26px !important; border-style:solid !important;
+  }
+  .modal-card-dark .modal-title{ color:#F5F6F8 !important; font-size:16px; }
+  .modal-card-dark .modal-close{ background:rgba(255,255,255,.08) !important; color:#9AA3AE !important; }
+  .modal-card-dark .modal-close:hover{ background:rgba(255,255,255,.14) !important; color:#F5F6F8 !important; }
+  .modal-card-dark .modal-badge-row{ border-color:rgba(255,255,255,.08) !important; background:rgba(255,255,255,.02); }
+  .modal-card-dark .modal-badge{ border-radius:16px; }
+  .modal-card-dark .modal-badge-text p:first-child{ color:#F5F6F8 !important; }
+  .modal-card-dark .modal-badge-text p:last-child{ color:#7d838d !important; }
+  .modal-card-dark .modal-body p{ color:rgba(220,222,227,.65) !important; }
+  #introWish{
+    font-family:'Crimson Text', serif; font-style:italic; font-size:16px; line-height:1.5;
+    text-align:center; color:#F5F6F8 !important; margin-bottom:18px;
+  }
+  .intro-open-btn{
+    display:block; width:100%; height:40px; border-radius:12px; border:none; cursor:pointer;
+    background:#7c1d1d; color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:12.5px;
+    transition:opacity .15s ease;
+  }
+  .intro-open-btn:hover{ opacity:.88; }
+  .modal-card-dark .link-row .field-input{
+    background:#101215 !important; border:1.5px solid #3A67D8 !important; color:#c9d3ee !important;
+    box-shadow:0 0 0 3.5px rgba(58,103,216,.18) !important; letter-spacing:.01em;
+  }
+  .modal-card-dark .link-row .field-input::placeholder{ color:#5C6069 !important; }
+  .modal-card-dark .copy-now-btn{ border-radius:12px; font-size:12px; padding:0 18px; }
+  .modal-card-dark .about-list .step-num{ background:rgba(255,255,255,.08) !important; color:#F5F6F8 !important; }
+  .modal-card-dark .about-list .step p{ color:rgba(220,222,227,.65) !important; }
+  .modal-card-dark .about-list .step p b{ color:#F5F6F8 !important; }
+  .modal-card-dark .modal-foot-note{ color:#7d838d !important; border-color:rgba(255,255,255,.08) !important; }
+  .made-by-row{ display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:14px; border-top:1px dashed #E4E6EA; }
+  .dark .made-by-row{ border-color:#33363D; }
+  .made-by-avatar{
+    width:34px; height:34px; border-radius:9999px; background:#F1F2F4; color:#1E2126;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0;
+  }
+  .dark .made-by-avatar{ background:#26282D; color:#E7E9EC; }
+  .made-by-text p:first-child{ font-weight:700; font-size:12.5px; line-height:1.3; color:#1E2126; }
+  .dark .made-by-text p:first-child{ color:#E7E9EC; }
+  .made-by-text p:last-child{ font-size:11px; color:#8A8F98; line-height:1.3; margin-top:1px; }
+  .dark .made-by-text p:last-child{ color:#9AA3AE; }
+</style>
+</head>
+<body class="relative bg-[#EDEFF2] dark:bg-[#15171B] [background-image:linear-gradient(to_right,rgba(148,152,158,.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,152,158,.12)_1px,transparent_1px)] dark:[background-image:linear-gradient(to_right,rgba(255,255,255,.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.06)_1px,transparent_1px)] [background-size:80px_80px] font-sans text-[#1E2126] dark:text-[#E7E9EC] min-h-screen transition-colors duration-200">
+
+<!-- WELCOME MODAL (recipient view only) -->
+<div id="introModal" class="mini-modal-overlay hidden">
+  <div class="intro-hearts" id="introHearts"></div>
+  <div class="modal-card modal-card-dark">
+    <div class="modal-head">
+      <div class="modal-title">Thank you for stopping by</div>
+      <button class="modal-close" id="introModalCloseX" data-close="introModal" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-badge-row">
+      <div class="modal-badge">❤</div>
+      <div class="modal-badge-text">
+        <p>Letterbox</p>
+        <p>a little letter</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p id="introWish">may you both cherish every letter you write each other</p>
+      <button id="introModalClose" type="button" class="intro-open-btn">Open the letter</button>
+    </div>
+  </div>
+</div>
+
+<div id="pageContainer" class="max-w-[1180px] mx-auto px-5 pt-7 pb-14">
+
+  <div id="pageHeader" class="flex items-start justify-between mb-5 flex-wrap gap-4 pb-4 border-b border-[#E4E6EA] dark:border-[#282A30]">
+    <div>
+      <div class="font-mono text-[11px] font-semibold tracking-[.14em] uppercase text-[#7c1d1d]">/* letterbox. */</div>
+      <h1 class="text-[24px] font-extrabold tracking-[-0.02em] mt-1.5 mb-1">Write your letter.</h1>
+      <p class="text-[13px] text-[#8A8F98] max-w-[520px]">Write a private note, watch it seal into an envelope, then share a link or export a clean image.</p>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="aboutBtn" title="About Letterbox" class="w-9 h-9 rounded-full bg-[#F1F2F4] dark:bg-[#26282D] flex items-center justify-center hover:bg-[#E7E8EB] dark:hover:bg-[#303339] transition-colors text-[#8A8F98] dark:text-[#9AA3AE]">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+      <button id="darkToggle" title="Toggle theme" class="w-9 h-9 rounded-full bg-[#F1F2F4] dark:bg-[#26282D] flex items-center justify-center hover:bg-[#E7E8EB] dark:hover:bg-[#303339] transition-colors">
+        <svg id="iconSun" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg id="iconMoon" class="w-4 h-4 dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="mainGrid" class="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-6 md:items-start">
+
+    <!-- EDITOR PANEL -->
+    <div id="editorPanel" class="flex flex-col gap-4">
+      <div class="field-section">
+        <div class="field-group-label">Recipient</div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">To</label>
+          <input id="toInput" type="text" maxlength="30" class="field-input !text-[13px]" placeholder="e.g. Sei">
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Message <span id="msgCount" class="normal-case tracking-normal text-[#B4B8C0]">0/220</span></label>
+          <textarea id="msgInput" rows="4" maxlength="220" class="field-input !text-[13px] resize-none leading-relaxed" placeholder="You and I inhabit different worlds, and this makes our love more special."></textarea>
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">From</label>
+          <input id="fromInput" type="text" maxlength="24" class="field-input !text-[13px]" placeholder="e.g. Your Admirer">
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Question</label>
+          <input id="ctaInput" type="text" maxlength="40" class="field-input !text-[13px]" placeholder="e.g. Be my Valentine?">
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Footnote</label>
+          <input id="noteInput" type="text" maxlength="60" class="field-input !text-[13px]" placeholder="e.g. My heart silently seeks you out.">
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Sign-off label</label>
+          <input id="signOffInput" type="text" maxlength="16" class="field-input !text-[13px]" placeholder="e.g. Always,">
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Photo <span class="normal-case text-[#B4B8C0] lowercase">— optional</span></label>
+          <div class="upload-row">
+            <div id="photoPreview" class="w-11 h-11 rounded-lg bg-[#F1F2F4] dark:bg-[#26282D] bg-cover bg-center shrink-0 border border-[#E4E6EA] dark:border-[#33363D] flex items-center justify-center text-[#B4B8C0]">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4" width="15" height="12" rx="2"/><circle cx="7" cy="8.5" r="1.5"/><path d="M3 14l3.5-3.5a1.5 1.5 0 0 1 2 0L11 13l1.5-1.5a1.5 1.5 0 0 1 2 0L17 14"/></svg>
+            </div>
+            <div class="upload-row-text flex-1">
+              <span class="upload-row-title">Attach a photo</span>
+              <span class="upload-row-hint">Fills the "Post" stamp in the corner</span>
+            </div>
+            <button type="button" id="photoUploadBtn" class="upload-row-btn shrink-0">Upload</button>
+            <button type="button" id="photoRemoveBtn" class="upload-row-btn upload-row-btn-remove shrink-0 hidden">Remove</button>
+            <input type="file" id="photoInput" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <div>
+          <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Scatter photos <span class="normal-case text-[#B4B8C0] lowercase">— optional, up to 5</span></label>
+          <div class="upload-row">
+            <div class="w-11 h-11 rounded-lg bg-[#F1F2F4] dark:bg-[#26282D] shrink-0 border border-[#E4E6EA] dark:border-[#33363D] flex items-center justify-center text-[#B4B8C0]">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4" width="15" height="12" rx="2"/><circle cx="7" cy="8.5" r="1.5"/><path d="M3 14l3.5-3.5a1.5 1.5 0 0 1 2 0L11 13l1.5-1.5a1.5 1.5 0 0 1 2 0L17 14"/></svg>
+            </div>
+            <div class="upload-row-text flex-1">
+              <span class="upload-row-title">Add photos</span>
+              <span class="upload-row-hint">They spill out around the card when it opens</span>
+            </div>
+            <button type="button" id="scatterUploadBtn" class="upload-row-btn shrink-0">Add</button>
+            <input type="file" id="scatterInput" accept="image/*" multiple class="hidden">
+          </div>
+          <div id="scatterThumbs" class="flex flex-wrap gap-1.5 mt-2"></div>
+          <div class="mt-2" id="scatterTypeRow">
+            <label class="field-group-label block mb-1 !text-[10px] !normal-case !tracking-normal text-[#B4B8C0]">Scatter style</label>
+            <select id="scatterTypeSelect" class="field-input !text-[13px] !py-2">
+              <option value="corners">Corners — spills to the four sides</option>
+              <option value="circle">Circle — fans out around the card</option>
+              <option value="burst">Burst — flung outward at an angle</option>
+              <option value="stack">Stack — messy pile at the bottom</option>
+              <option value="row">Row — lined up underneath</option>
+            </select>
+          </div>
+          <div class="flex items-center justify-between mt-2.5">
+            <label class="switch-row !gap-2" for="tapeToggle" style="flex:1;">
+              <span class="text-[11.5px] font-semibold text-[#1E2126] dark:text-[#E7E9EC]">Washi tape corners</span>
+              <span class="switch">
+                <input type="checkbox" id="tapeToggle">
+                <span class="switch-track"></span>
+              </span>
+            </label>
+          </div>
+          <button type="button" id="scatterShuffleBtn" class="upload-row-btn shrink-0 w-full mt-2 !justify-center flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            Shuffle scatter look
+          </button>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <div class="field-group-label">Card style</div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="style-card active" data-style="classic" data-style-preview="classic">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">classic</span>
+          </div>
+          <div class="style-card" data-style="ticket" data-style-preview="ticket">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">ticket</span>
+          </div>
+          <div class="style-card" data-style="parchment" data-style-preview="parchment">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">parchment</span>
+          </div>
+          <div class="style-card" data-style="minimal" data-style-preview="minimal">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">minimal</span>
+          </div>
+          <div class="style-card" data-style="typewriter" data-style-preview="typewriter">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">typewriter</span>
+          </div>
+          <div class="style-card" data-style="boardingpass" data-style-preview="boardingpass">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">boarding</span>
+          </div>
+          <div class="style-card" data-style="ribbon" data-style-preview="ribbon">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">ribbon</span>
+          </div>
+          <div class="style-card" data-style="polaroid" data-style-preview="polaroid">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">polaroid</span>
+          </div>
+          <div class="style-card" data-style="showcase" data-style-preview="showcase">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">showcase</span>
+          </div>
+          <div class="style-card" data-style="carta" data-style-preview="carta">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">carta</span>
+          </div>
+          <div class="style-card" data-style="beaustice" data-style-preview="beaustice">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">beaustice</span>
+          </div>
+          <div class="style-card" data-style="specsheet" data-style-preview="specsheet">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">specsheet</span>
+          </div>
+          <div class="style-card" data-style="portico" data-style-preview="portico">
+            <div class="style-preview"><span></span><i></i></div>
+            <span class="font-mono text-[9.5px] text-[#8A8F98]">portico</span>
+          </div>
+        </div>
+        <div>
+          <div class="field-group-label mb-1.5">Color palette</div>
+          <div class="flex flex-wrap gap-2.5">
+            <div class="palette-swatch active" data-palette="crimson" style="background:#7c1d1d" title="Crimson"></div>
+            <div class="palette-swatch" data-palette="rose" style="background:#c2447a" title="Rose"></div>
+            <div class="palette-swatch" data-palette="navy" style="background:#1d3a6c" title="Navy"></div>
+            <div class="palette-swatch" data-palette="forest" style="background:#1f5c3f" title="Forest"></div>
+            <div class="palette-swatch" data-palette="gold" style="background:#a97a1f" title="Gold"></div>
+            <div class="palette-swatch" data-palette="mono" style="background:#2a2a2a" title="Mono"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-section">
+        <div class="field-group-label">Display</div>
+        <label class="switch-row" for="alwaysOpenToggle">
+          <span class="text-[12.5px] font-semibold text-[#1E2126] dark:text-[#E7E9EC]">Keep card always open</span>
+          <span class="switch">
+            <input type="checkbox" id="alwaysOpenToggle">
+            <span class="switch-track"></span>
+          </span>
+        </label>
+      </div>
+
+      <div class="field-section">
+        <div class="field-group-label">Share</div>
+        <label class="switch-row" for="introToggle">
+          <span class="text-[12.5px] font-semibold text-[#1E2126] dark:text-[#E7E9EC]">Welcome intro for recipient</span>
+          <span class="switch">
+            <input type="checkbox" id="introToggle" checked>
+            <span class="switch-track"></span>
+          </span>
+        </label>
+        <p class="text-[10.5px] leading-relaxed text-[#8A8F98] dark:text-[#9AA3AE] -mt-1.5">Plays a little animation and a sweet note when they open your link.</p>
+        <button id="linkBtn" type="button" class="h-9 px-3 rounded-xl border-none bg-[#F1F2F4] dark:bg-[#26282D] text-[#1E2126] dark:text-[#E7E9EC] font-bold text-[11px] cursor-pointer hover:bg-[#E7E8EB] dark:hover:bg-[#303339] transition-colors">Copy share link</button>
+        <button id="downloadBtn" type="button" class="h-9 px-3 rounded-xl border-none bg-[#7c1d1d] text-white font-bold text-[11px] cursor-pointer hover:opacity-[.88] transition-opacity">Download as image</button>
+        <p class="text-[10.5px] leading-relaxed text-[#8A8F98] dark:text-[#9AA3AE]" id="hoverHint">Hover or tap the envelope to see it open. The downloaded image is saved already opened.</p>
+      </div>
+    </div>
+
+    <!-- PREVIEW STAGE -->
+    <div id="previewStage" class="w-full flex justify-center p-10 rounded-[22px] bg-[#F1F2F4] dark:bg-[#1A1C21] [background-image:radial-gradient(circle,rgba(148,152,158,.35)_1px,transparent_1px)] [background-size:16px_16px] min-h-[520px] items-center md:sticky md:top-5 md:self-start md:max-h-[calc(100vh-40px)]">
+      <div class="perspective">
+        <div class="envelope-wrap" id="envelope">
+          <div id="captureArea" style="position:relative; width:100%; height:100%;">
+            <div class="letter">
+              <div class="letter-inner">
+                <div class="letter-head">
+                  <div>
+                    <div class="letter-to" id="toOut">Dear Friend,</div>
+                    <p class="letter-msg" id="msgOut">You and I inhabit different worlds, and this makes our love more special.</p>
+                  </div>
+                  <div class="stamp" id="stampBox">
+                    <div class="lbl" id="stampLbl">Post</div>
+                    <div class="heart" id="stampHeart">❤</div>
+                    <div class="stamp-photo hidden" id="stampPhoto"></div>
+                  </div>
+                </div>
+                <div class="letter-cta"><p id="ctaOut">Be my Valentine?</p></div>
+                <div class="letter-foot">
+                  <div class="note" id="noteOut">My heart silently seeks you out.</div>
+                  <div style="text-align:right;">
+                    <p class="from-lbl" id="signOffOut">Always,</p>
+                    <p class="from" id="fromOut">Your Admirer</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="scatter-layer" id="scatterLayer"></div>
+
+            <div class="envelope-body">
+              <div class="seal"><span>❤</span></div>
+              <div class="envelope-label"><p>You and I</p></div>
+            </div>
+            <div class="flap"></div>
+          </div>
+          <div class="prompt" id="promptTxt">hover to open</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center text-[11px] text-[#8A8F98] dark:text-[#9AA3AE] mt-6 hidden" id="viewerNote">
+    someone wrote you this — <button id="makeOwnBtn" class="text-[#3A67D8] underline font-mono">make your own letter</button>
+  </div>
+
+</div>
+
+<div id="toastStack"><div class="mini-toast" id="toast"></div></div>
+
+<!-- SHARE LINK MODAL -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal-card modal-card-dark">
+    <div class="modal-head">
+      <div class="modal-title">Share this letter</div>
+      <button class="modal-close" data-close="shareModal" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-badge-row">
+      <div class="modal-badge">❤</div>
+      <div class="modal-badge-text">
+        <p>Letterbox</p>
+        <p>Link · read-only</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p>Anyone with this link can open the envelope and read your letter, exactly as you wrote it. Nothing is uploaded — the whole letter lives inside the link itself. (A quick note: an attached photo won't travel through this link — download the image instead to send it with the photo.)</p>
+      <div class="link-row">
+        <input id="shareLinkInput" class="field-input" type="text" readonly>
+        <button class="copy-now-btn" id="copyNowBtn">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT MODAL -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal-card modal-card-dark">
+    <div class="modal-head">
+      <div class="modal-title">About Letterbox</div>
+      <button class="modal-close" data-close="aboutModal" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-badge-row">
+      <div class="modal-badge">❤</div>
+      <div class="modal-badge-text">
+        <p>Letterbox.</p>
+        <p>A letter, sealed &amp; sent.</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p>Letterbox is a tiny tool for writing a private letter and sending it as a sealed envelope — no accounts, no servers, just a link or a picture.</p>
+      <div class="about-list">
+        <div class="step">
+          <span class="step-num">1</span>
+          <p><b>Write</b> — fill in who it's to, your message, and who it's from.</p>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <p><b>Preview</b> — hover or tap the envelope to watch it open.</p>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <p><b>Send</b> — copy a share link, or download it as an image, already opened.</p>
+        </div>
+      </div>
+      <p class="modal-foot-note">Everything renders locally in your browser — nothing you type here is sent anywhere.</p>
+      <div class="made-by-row">
+        <div class="made-by-avatar">JN</div>
+        <div class="made-by-text">
+          <p>Jhon Carl Nayao</p>
+          <p>"Fuujin"</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const toInput = $('toInput'), msgInput = $('msgInput'), fromInput = $('fromInput');
+const ctaInput = $('ctaInput'), noteInput = $('noteInput'), signOffInput = $('signOffInput');
+const toOut = $('toOut'), msgOut = $('msgOut'), fromOut = $('fromOut');
+const ctaOut = $('ctaOut'), noteOut = $('noteOut'), signOffOut = $('signOffOut');
+const envelope = $('envelope'), viewerNote = $('viewerNote');
+const msgCount = $('msgCount');
+
+const DEFAULTS = {
+  to: 'Friend',
+  msg: 'You and I inhabit different worlds, and this makes our love more special.',
+  from: 'Your Admirer',
+  cta: 'Be my Valentine?',
+  note: 'My heart silently seeks you out.',
+  signOff: 'Always,'
+};
+
+/* card style + palette */
+const PALETTES = {
+  crimson: { ink:'#3a1414', inkSoft:'#5b4646', accent:'#7c1d1d', accentDeep:'#5c1212', accentSoft:'rgba(92,18,18,.6)', paper:'#fcfaf7', paperBorder:'#e7dfd6', divider:'#f0d9d9', divider2:'#f4e5e5', stampBg:'#fbf3f0', stampBorder:'#d8c3c3', stampTxt:'#c69', flapBg:'#efefef', labelTxt:'#a99' },
+  rose:    { ink:'#4a1530', inkSoft:'#6b3a4f', accent:'#c2447a', accentDeep:'#8f2d59', accentSoft:'rgba(143,45,89,.6)', paper:'#fdf7fa', paperBorder:'#efd9e4', divider:'#f6dfe9', divider2:'#f8e6ee', stampBg:'#fdf1f6', stampBorder:'#e8c3d4', stampTxt:'#b76e94', flapBg:'#f4ebef', labelTxt:'#b78ea1' },
+  navy:    { ink:'#111f3a', inkSoft:'#3a4a66', accent:'#1d3a6c', accentDeep:'#132a4f', accentSoft:'rgba(19,42,79,.6)', paper:'#f7f9fc', paperBorder:'#d9e1ec', divider:'#dfe6f0', divider2:'#e6ecf4', stampBg:'#eff3f9', stampBorder:'#bfd0e6', stampTxt:'#5a7aa8', flapBg:'#eaeef4', labelTxt:'#8b9bb5' },
+  forest:  { ink:'#12301f', inkSoft:'#375442', accent:'#1f5c3f', accentDeep:'#15452e', accentSoft:'rgba(21,69,46,.6)', paper:'#f7faf8', paperBorder:'#d8e6de', divider:'#deece4', divider2:'#e6f0ea', stampBg:'#eff6f2', stampBorder:'#bfdbcb', stampTxt:'#4c8f6b', flapBg:'#eaf2ee', labelTxt:'#8bb59d' },
+  gold:    { ink:'#3a2a10', inkSoft:'#5e4a2a', accent:'#a97a1f', accentDeep:'#7d5a15', accentSoft:'rgba(125,90,21,.6)', paper:'#fdfaf3', paperBorder:'#ecdfc0', divider:'#f2e7cc', divider2:'#f6edd9', stampBg:'#faf3e2', stampBorder:'#e0cb99', stampTxt:'#a3843f', flapBg:'#f3ecd9', labelTxt:'#bda56e' },
+  mono:    { ink:'#1e2126', inkSoft:'#4a4d53', accent:'#2a2a2a', accentDeep:'#15171b', accentSoft:'rgba(21,23,27,.6)', paper:'#fafafa', paperBorder:'#dcdcdc', divider:'#e4e4e4', divider2:'#eaeaea', stampBg:'#f2f2f2', stampBorder:'#cfcfcf', stampTxt:'#8a8a8a', flapBg:'#ebebeb', labelTxt:'#9a9a9a' }
+};
+function applyPalette(name){
+  const p = PALETTES[name] || PALETTES.crimson;
+  const map = { ink:'--ink', inkSoft:'--ink-soft', accent:'--accent', accentDeep:'--accent-deep', accentSoft:'--accent-soft', paper:'--paper', paperBorder:'--paper-border', divider:'--divider', divider2:'--divider2', stampBg:'--stamp-bg', stampBorder:'--stamp-border', stampTxt:'--stamp-txt', flapBg:'--flap-bg', labelTxt:'--label-txt' };
+  Object.entries(map).forEach(([key, cssVar]) => envelope.style.setProperty(cssVar, p[key]));
+  document.querySelectorAll('.palette-swatch').forEach(el => el.classList.toggle('active', el.dataset.palette === name));
+}
+document.querySelectorAll('.palette-swatch').forEach(el => {
+  el.addEventListener('click', () => applyPalette(el.dataset.palette));
+});
+
+function applyCardStyle(name){
+  envelope.setAttribute('data-style', name);
+  document.querySelectorAll('.style-card').forEach(el => el.classList.toggle('active', el.dataset.style === name));
+}
+document.querySelectorAll('.style-card').forEach(el => {
+  el.addEventListener('click', () => applyCardStyle(el.dataset.style));
+});
+
+function render(){
+  toOut.textContent = 'Dear ' + (toInput.value.trim() || DEFAULTS.to) + ',';
+  msgOut.textContent = msgInput.value.trim() || DEFAULTS.msg;
+  fromOut.textContent = fromInput.value.trim() || DEFAULTS.from;
+  ctaOut.textContent = ctaInput.value.trim() || DEFAULTS.cta;
+  noteOut.textContent = noteInput.value.trim() || DEFAULTS.note;
+  signOffOut.textContent = signOffInput.value.trim() || DEFAULTS.signOff;
+  msgCount.textContent = msgInput.value.length + '/220';
+}
+[toInput, msgInput, fromInput, ctaInput, noteInput, signOffInput].forEach(el => el.addEventListener('input', render));
+render();
+
+/* photo attach */
+let photoData = null;
+const photoInput = $('photoInput'), photoPreview = $('photoPreview');
+const stampPhoto = $('stampPhoto'), stampLbl = $('stampLbl'), stampHeart = $('stampHeart');
+const photoUploadBtn = $('photoUploadBtn'), photoRemoveBtn = $('photoRemoveBtn');
+photoUploadBtn.addEventListener('click', () => photoInput.click());
+
+function applyPhoto(dataUrl){
+  photoData = dataUrl;
+  photoPreview.style.backgroundImage = `url(${photoData})`;
+  photoPreview.innerHTML = '';
+  stampPhoto.style.backgroundImage = `url(${photoData})`;
+  stampPhoto.classList.remove('hidden');
+  stampLbl.classList.add('hidden');
+  stampHeart.classList.add('hidden');
+  photoRemoveBtn.classList.remove('hidden');
+}
+
+/* downscale + compress so the image can travel inside the share-link URL */
+function compressImage(file, maxSize = 220, quality = 0.72){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > height){ if(width > maxSize){ height *= maxSize / width; width = maxSize; } }
+        else { if(height > maxSize){ width *= maxSize / height; height = maxSize; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+photoInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const compressed = await compressImage(file);
+    applyPhoto(compressed);
+  }catch(err){
+    showToast('Could not load that photo');
+  }
+});
+photoRemoveBtn.addEventListener('click', () => {
+  photoData = null;
+  photoInput.value = '';
+  photoPreview.style.backgroundImage = '';
+  photoPreview.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4" width="15" height="12" rx="2"/><circle cx="7" cy="8.5" r="1.5"/><path d="M3 14l3.5-3.5a1.5 1.5 0 0 1 2 0L11 13l1.5-1.5a1.5 1.5 0 0 1 2 0L17 14"/></svg>';
+  stampPhoto.style.backgroundImage = '';
+  stampPhoto.classList.add('hidden');
+  stampLbl.classList.remove('hidden');
+  stampHeart.classList.remove('hidden');
+  photoRemoveBtn.classList.add('hidden');
+});
+
+/* scatter photos — spill out around the card when it opens */
+const scatterLayer = $('scatterLayer'), scatterUploadBtn = $('scatterUploadBtn'),
+      scatterInput = $('scatterInput'), scatterThumbs = $('scatterThumbs');
+const scatterTypeSelect = $('scatterTypeSelect'), tapeToggle = $('tapeToggle'), scatterShuffleBtn = $('scatterShuffleBtn');
+const MAX_SCATTER = 5;
+let scatterImages = [];
+let scatterType = 'corners';
+let scatterJitter = []; /* per-photo random rotation/bob-timing offsets, regenerated on shuffle */
+
+function freshJitter(){
+  return { rot: Math.round((Math.random() - .5) * 14), dur: (2.6 + Math.random() * 1.6).toFixed(2), delay: (Math.random() * 1.4).toFixed(2) };
+}
+function ensureJitter(){
+  while(scatterJitter.length < scatterImages.length) scatterJitter.push(freshJitter());
+  scatterJitter.length = scatterImages.length;
+}
+
+/* preset position sets per scatter style, keyed by style name */
+const SCATTER_LAYOUTS = {
+  corners: [
+    { x: '-15%', y: '4%',  rot: -9 },
+    { x: '104%', y: '0%',  rot: 8  },
+    { x: '-10%', y: '74%', rot: 11 },
+    { x: '101%', y: '70%', rot: -13 },
+    { x: '38%',  y: '-15%', rot: 5 }
+  ],
+  circle: [
+    { x: '50%',  y: '-18%', rot: -4 },
+    { x: '108%', y: '22%',  rot: 10 },
+    { x: '108%', y: '78%',  rot: -8 },
+    { x: '50%',  y: '112%', rot: 6  },
+    { x: '-8%',  y: '50%',  rot: -12 }
+  ],
+  burst: [
+    { x: '50%',  y: '50%', rot: -18, radius: 1 },
+    { x: '50%',  y: '50%', rot: 14,  radius: 1 },
+    { x: '50%',  y: '50%', rot: -10, radius: 1 },
+    { x: '50%',  y: '50%', rot: 20,  radius: 1 },
+    { x: '50%',  y: '50%', rot: -24, radius: 1 }
+  ],
+  stack: [
+    { x: '32%', y: '96%', rot: -8 },
+    { x: '46%', y: '100%', rot: 4  },
+    { x: '60%', y: '97%', rot: 12 },
+    { x: '40%', y: '104%', rot: -14 },
+    { x: '54%', y: '106%', rot: 2 }
+  ],
+  row: [
+    { x: '4%',   y: '104%', rot: -3 },
+    { x: '27%',  y: '104%', rot: 2  },
+    { x: '50%',  y: '104%', rot: -2 },
+    { x: '73%',  y: '104%', rot: 3  },
+    { x: '96%',  y: '104%', rot: -1 }
+  ]
+};
+/* burst positions are computed radially so they always spread evenly regardless of count */
+function burstPosition(i, total){
+  const angle = (-100 + (220 / Math.max(total - 1, 1)) * i) * (Math.PI / 180);
+  const rx = 62, ry = 58;
+  const x = 50 + Math.cos(angle) * rx;
+  const y = 50 + Math.sin(angle) * ry - 18;
+  return { x: x + '%', y: y + '%' };
+}
+
+function renderScatterLayer(){
+  scatterLayer.innerHTML = '';
+  scatterLayer.classList.toggle('tape-on', tapeToggle.checked);
+  ensureJitter();
+  const presets = SCATTER_LAYOUTS[scatterType] || SCATTER_LAYOUTS.corners;
+  scatterImages.forEach((src, i) => {
+    const preset = presets[i % presets.length];
+    const jitter = scatterJitter[i] || freshJitter();
+    const pos = scatterType === 'burst' ? burstPosition(i, scatterImages.length) : preset;
+    const el = document.createElement('div');
+    el.className = 'scatter-photo';
+    el.style.left = pos.x;
+    el.style.top = pos.y;
+    el.style.setProperty('--rot', (preset.rot + jitter.rot) + 'deg');
+    el.style.setProperty('--bob-dur', jitter.dur + 's');
+    el.style.setProperty('--bob-delay', jitter.delay + 's');
+    el.style.transitionDelay = (i * 70) + 'ms';
+    const inner = document.createElement('div');
+    inner.className = 'scatter-inner';
+    const img = document.createElement('div');
+    img.className = 'scatter-img';
+    img.style.backgroundImage = `url(${src})`;
+    inner.appendChild(img);
+    el.appendChild(inner);
+    scatterLayer.appendChild(el);
+  });
+}
+scatterTypeSelect.addEventListener('change', () => {
+  scatterType = scatterTypeSelect.value;
+  renderScatterLayer();
+});
+tapeToggle.addEventListener('change', () => {
+  scatterLayer.classList.toggle('tape-on', tapeToggle.checked);
+});
+scatterShuffleBtn.addEventListener('click', () => {
+  if(!scatterImages.length){ showToast('Add some scatter photos first'); return; }
+  scatterJitter = scatterImages.map(() => freshJitter());
+  renderScatterLayer();
+  showToast('Scatter look shuffled');
+});
+function renderScatterThumbs(){
+  scatterThumbs.innerHTML = '';
+  scatterImages.forEach((src, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'relative w-9 h-9 rounded-md overflow-hidden border border-[#E4E6EA] dark:border-[#33363D] shrink-0';
+    wrap.style.backgroundImage = `url(${src})`;
+    wrap.style.backgroundSize = 'cover';
+    wrap.style.backgroundPosition = 'center';
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.textContent = '×';
+    rm.className = 'absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#1E2126] text-white text-[10px] leading-none flex items-center justify-center';
+    rm.addEventListener('click', () => { scatterImages.splice(i, 1); scatterJitter.splice(i, 1); renderScatterThumbs(); renderScatterLayer(); });
+    wrap.appendChild(rm);
+    scatterThumbs.appendChild(wrap);
+  });
+  scatterUploadBtn.disabled = scatterImages.length >= MAX_SCATTER;
+  scatterUploadBtn.style.opacity = scatterImages.length >= MAX_SCATTER ? '.5' : '1';
+}
+scatterUploadBtn.addEventListener('click', () => scatterInput.click());
+scatterInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []).slice(0, MAX_SCATTER - scatterImages.length);
+  scatterInput.value = '';
+  if(!files.length) return;
+  try{
+    for(const file of files){
+      const compressed = await compressImage(file, 160, 0.65);
+      scatterImages.push(compressed);
+    }
+    renderScatterThumbs();
+    renderScatterLayer();
+  }catch(err){
+    showToast('Could not load one of those photos');
+  }
+});
+
+/* open/close interaction */
+let isTouch = matchMedia('(hover:none)').matches;
+if(!isTouch){
+  envelope.addEventListener('mouseenter', () => { if(!envelope.classList.contains('force-open')) envelope.classList.add('open'); });
+  envelope.addEventListener('mouseleave', () => { if(!envelope.classList.contains('force-open')) envelope.classList.remove('open'); });
+} else {
+  envelope.addEventListener('click', () => {
+    if(envelope.classList.contains('force-open')) return;
+    envelope.classList.toggle('open');
+  });
+}
+
+/* keep card always open toggle */
+const alwaysOpenToggle = $('alwaysOpenToggle'), hoverHint = $('hoverHint');
+const introToggle = $('introToggle');
+function setAlwaysOpen(on){
+  alwaysOpenToggle.checked = on;
+  envelope.classList.toggle('force-open', on);
+  envelope.classList.toggle('open', on);
+  hoverHint.textContent = on
+    ? 'The card stays open. Turn this off to bring back the hover-to-open envelope.'
+    : 'Hover or tap the envelope to see it open. The downloaded image is saved already opened.';
+}
+alwaysOpenToggle.addEventListener('change', () => setAlwaysOpen(alwaysOpenToggle.checked));
+
+
+/* dark mode */
+const root = document.documentElement;
+function setDark(on){
+  root.classList.toggle('dark', on);
+  localStorage.setItem('letterboxTheme', on ? 'dark' : 'light');
+}
+const savedTheme = localStorage.getItem('letterboxTheme');
+if(savedTheme){ setDark(savedTheme === 'dark'); }
+else { setDark(matchMedia('(prefers-color-scheme: dark)').matches); }
+$('darkToggle').addEventListener('click', () => setDark(!root.classList.contains('dark')));
+
+/* toast */
+let toastTimer = null;
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* share link */
+function encodeState(){
+  const data = {
+    t: toInput.value.trim(), m: msgInput.value.trim(), f: fromInput.value.trim(),
+    c: ctaInput.value.trim(), n: noteInput.value.trim(), o: signOffInput.value.trim(),
+    s: envelope.getAttribute('data-style') || 'classic',
+    p: document.querySelector('.palette-swatch.active')?.dataset.palette || 'crimson',
+    ph: photoData || '',
+    sc: scatterImages,
+    st: scatterType,
+    sj: scatterJitter,
+    tp: tapeToggle.checked ? 1 : 0,
+    ao: alwaysOpenToggle.checked ? 1 : 0,
+    wi: introToggle.checked ? 1 : 0
+  };
+  return btoa(encodeURIComponent(JSON.stringify(data)));
+}
+function decodeState(str){
+  try{ return JSON.parse(decodeURIComponent(atob(str))); } catch(e){ return null; }
+}
+/* generic modal helpers */
+function openModal(id){
+  const el = $(id);
+  el.classList.add('show');
+  document.addEventListener('keydown', escCloseHandler);
+}
+function closeModal(id){
+  $(id).classList.remove('show');
+}
+function escCloseHandler(e){
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+  }
+}
+document.querySelectorAll('.modal-close').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.classList.remove('show'); });
+});
+
+$('linkBtn').addEventListener('click', async () => {
+  const url = location.origin + location.pathname + '#d=' + encodeState();
+  $('shareLinkInput').value = url;
+  openModal('shareModal');
+  try{ await navigator.clipboard.writeText(url); }catch(e){ /* silent, user can still hit Copy */ }
+});
+$('copyNowBtn').addEventListener('click', async () => {
+  const input = $('shareLinkInput');
+  try{
+    await navigator.clipboard.writeText(input.value);
+    showToast('Link copied — paste it anywhere');
+  }catch(e){
+    input.select();
+    document.execCommand('copy');
+    showToast('Link copied — paste it anywhere');
+  }
+});
+$('aboutBtn').addEventListener('click', () => openModal('aboutModal'));
+
+/* download as image */
+$('downloadBtn').addEventListener('click', async () => {
+  const capture = $('captureArea');
+  const wasOpen = envelope.classList.contains('open');
+  envelope.classList.add('open');
+  const styleTag = document.createElement('style');
+  styleTag.id = 'freeze';
+  styleTag.textContent = '.letter, .seal, .flap { transition: none !important; }';
+  document.head.appendChild(styleTag);
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try{
+    // The open letter translates outside captureArea's own box (translateY(-58%)),
+    // so we need to capture a taller region, shifted up, or html2canvas clips it.
+    const letterEl = capture.querySelector('.letter');
+    const captureRect = capture.getBoundingClientRect();
+    const letterRect = letterEl.getBoundingClientRect();
+    const overflowTop = Math.max(0, captureRect.top - letterRect.top);
+    const overflowBottom = Math.max(0, letterRect.bottom - captureRect.bottom);
+
+    const canvas = await html2canvas(capture, {
+      backgroundColor: null,
+      scale: 3,
+      y: -overflowTop,
+      height: capture.offsetHeight + overflowTop + overflowBottom
+    });
+    const link = document.createElement('a');
+    const safeName = (toInput.value.trim() || 'letter').toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    link.download = 'valentine-for-' + safeName + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('Image downloaded, already opened');
+  }catch(e){
+    showToast('Could not generate image');
+  }finally{
+    document.getElementById('freeze').remove();
+    if(!wasOpen) envelope.classList.remove('open');
+  }
+});
+
+/* viewer mode from shared link */
+function initFromHash(){
+  const match = location.hash.match(/d=([^&]+)/);
+  if(!match) return;
+  const data = decodeState(match[1]);
+  if(!data) return;
+  toInput.value = data.t || ''; msgInput.value = data.m || ''; fromInput.value = data.f || '';
+  ctaInput.value = data.c || ''; noteInput.value = data.n || ''; signOffInput.value = data.o || '';
+  applyCardStyle(data.s || 'classic');
+  applyPalette(data.p || 'crimson');
+  if(data.ph) applyPhoto(data.ph);
+  if(data.st && SCATTER_LAYOUTS[data.st]){
+    scatterType = data.st;
+    scatterTypeSelect.value = data.st;
+  }
+  if(data.tp){ tapeToggle.checked = true; }
+  if(Array.isArray(data.sc) && data.sc.length){
+    scatterImages = data.sc.slice(0, MAX_SCATTER);
+    if(Array.isArray(data.sj) && data.sj.length) scatterJitter = data.sj.slice(0, MAX_SCATTER);
+    renderScatterLayer();
+  }
+  if(data.ao) setAlwaysOpen(true);
+  render();
+
+  /* strip everything down to just the card — recipient's POV */
+  document.body.classList.add('viewer-mode');
+  $('pageHeader').style.display = 'none';
+  $('editorPanel').style.display = 'none';
+
+  const pageContainer = $('pageContainer');
+  pageContainer.style.cssText = 'max-width:520px; margin:0 auto; padding:24px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;';
+
+  const mainGrid = $('mainGrid');
+  mainGrid.style.cssText = 'display:block; width:100%;';
+
+  const previewStage = $('previewStage');
+  previewStage.style.cssText = 'width:100%; display:flex; justify-content:center; align-items:center; padding:0; margin:0; background:none; min-height:0; position:static;';
+
+  viewerNote.classList.remove('hidden');
+  viewerNote.style.marginTop = '20px';
+
+  if(data.wi) playIntroSequence(data);
+}
+
+/* welcome intro, shown once when a recipient opens a shared link */
+function playIntroSequence(data){
+  const heartsWrap = $('introHearts');
+  const modalOverlay = $('introModal'), wishEl = $('introWish'), closeBtn = $('introModalClose'), closeX = $('introModalCloseX');
+
+  const staticWishes = [
+    'may this be the start of many sweet notes between you two',
+    'may you both cherish every letter you write each other',
+    'here\'s to more little moments worth writing down',
+    'may every letter find its way back to a smile'
+  ];
+  wishEl.textContent = staticWishes[Math.floor(Math.random() * staticWishes.length)];
+
+  /* floating hearts, drifting behind the card */
+  heartsWrap.innerHTML = '';
+  for(let i = 0; i < 14; i++){
+    const s = document.createElement('span');
+    s.textContent = '❤';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 1.6) + 's';
+    s.style.fontSize = (12 + Math.random() * 16) + 'px';
+    heartsWrap.appendChild(s);
+  }
+
+  modalOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  function closeIntro(){
+    modalOverlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    closeBtn.removeEventListener('click', closeIntro);
+    closeX.removeEventListener('click', closeIntro);
+  }
+  closeBtn.addEventListener('click', closeIntro);
+  closeX.addEventListener('click', closeIntro);
+}
+initFromHash();
+$('makeOwnBtn').addEventListener('click', () => {
+  history.replaceState(null, '', location.pathname);
+  location.reload();
+});
+</script>
+
+</body>
+</html>
