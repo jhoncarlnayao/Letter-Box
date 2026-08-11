@@ -90,7 +90,7 @@
     position:absolute; left:50%; top:0; transform:translateX(-50%);
     width:90%; height:96%; background:var(--paper);
     box-shadow:0 24px 50px rgba(0,0,0,.35);
-    border:1px solid var(--paper-border); padding:26px 24px; z-index:1;
+    border:1px solid var(--paper-border); padding:26px 24px; z-index:1; overflow:hidden;
     transition:transform .7s cubic-bezier(.22,1,.36,1), box-shadow .7s ease, background .3s ease, border-color .3s ease;
   }
   .envelope-wrap.open .letter{
@@ -103,7 +103,7 @@
     font-family:'Crimson Text', serif; transition:border-color .3s ease;
   }
   .letter-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-  .letter-to{ font-family:'Dancing Script', cursive; font-size:28px; color:var(--ink); line-height:1; transition:color .3s ease; }
+  .letter-to{ font-family:'Dancing Script', cursive; font-size:28px; color:var(--ink); line-height:1; transition:color .3s ease; overflow-wrap:break-word; word-break:break-word; }
   .letter-msg{
     font-size:13.5px; font-style:italic; color:var(--ink-soft); max-width:230px; line-height:1.55;
     margin-top:8px; white-space:pre-wrap; word-break:break-word; transition:color .3s ease;
@@ -118,9 +118,9 @@
   .letter-cta{ text-align:center; }
   .letter-cta p{ font-size:16px; font-weight:700; font-style:italic; text-transform:uppercase; letter-spacing:.12em; color:var(--accent-deep); transition:color .3s ease; }
   .letter-foot{ display:flex; justify-content:space-between; align-items:flex-end; border-top:1px solid var(--divider2); padding-top:12px; }
-  .letter-foot .note{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-style:italic; color:var(--accent-soft); max-width:140px; line-height:1.4; }
+  .letter-foot .note{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-style:italic; color:var(--accent-soft); max-width:140px; line-height:1.4; overflow-wrap:break-word; word-break:break-word; }
   .letter-foot .from-lbl{ font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--label-txt); text-align:right; }
-  .letter-foot .from{ font-family:'Dancing Script', cursive; font-size:22px; color:var(--accent-deep); text-align:right; transition:color .3s ease; }
+  .letter-foot .from{ font-family:'Dancing Script', cursive; font-size:22px; color:var(--accent-deep); text-align:right; transition:color .3s ease; max-width:140px; overflow-wrap:break-word; word-break:break-word; }
 
   .envelope-body{ position:absolute; inset:0; background:#fbfbfb; border:1px solid var(--paper-border); box-shadow:0 12px 30px rgba(0,0,0,.25); overflow:hidden; z-index:3; transition:border-color .3s ease; }
   .envelope-body::before{ content:""; position:absolute; inset:0; background:linear-gradient(35deg, #ffffff 50%, #f2eeea 50.1%); z-index:2; }
@@ -169,43 +169,6 @@
 
   /* ---------- card style variants (distinct designs) ---------- */
 
-  /* TICKET — boarding-pass style stub with a perforated divider */
-  .envelope-wrap[data-style="ticket"] .letter{ border-radius:10px; }
-  .envelope-wrap[data-style="ticket"] .letter-inner{
-    font-family:'JetBrains Mono', monospace; border:none; padding:0;
-  }
-  .envelope-wrap[data-style="ticket"] .letter-to{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:19px; letter-spacing:-.01em; }
-  .envelope-wrap[data-style="ticket"] .letter-msg{ font-style:normal; font-size:12px; }
-  .envelope-wrap[data-style="ticket"] .stamp{
-    width:44px; height:44px; border-radius:50%; border:2px solid var(--accent); background:none;
-  }
-  .envelope-wrap[data-style="ticket"] .stamp .lbl{ display:none; }
-  .envelope-wrap[data-style="ticket"] .stamp .heart{ font-size:15px; color:var(--accent); }
-  .envelope-wrap[data-style="ticket"] .letter-cta{
-    position:relative; text-align:center; margin:18px 0; padding:10px 0;
-    border-top:2px dashed var(--divider2); border-bottom:2px dashed var(--divider2);
-  }
-  .envelope-wrap[data-style="ticket"] .letter-cta::before,
-  .envelope-wrap[data-style="ticket"] .letter-cta::after{
-    content:''; position:absolute; top:50%; transform:translateY(-50%);
-    width:16px; height:16px; border-radius:50%;
-    background:var(--paper); border:1.5px solid var(--divider2);
-    box-shadow:0 1px 2px rgba(0,0,0,.12);
-  }
-  .envelope-wrap[data-style="ticket"] .letter-cta::before{ left:-34px; }
-  .envelope-wrap[data-style="ticket"] .letter-cta::after{ right:-34px; }
-  .envelope-wrap[data-style="ticket"] .letter-cta p{
-    font-family:'JetBrains Mono', monospace; font-style:normal; letter-spacing:.16em; font-size:13px;
-  }
-  .envelope-wrap[data-style="ticket"] .letter-foot{ border-top:none; justify-content:space-between; }
-  .envelope-wrap[data-style="ticket"] .letter-foot .note{ font-style:normal; }
-  .envelope-wrap[data-style="ticket"] .letter-foot .from{ font-family:'JetBrains Mono', monospace; font-size:17px; }
-  .envelope-wrap[data-style="ticket"] .seal{
-    border-radius:6px; width:44px; height:44px; background:repeating-linear-gradient(90deg, var(--accent) 0 3px, var(--accent-deep) 3px 5px);
-  }
-  .envelope-wrap[data-style="ticket"] .seal span{ display:none; }
-  .envelope-wrap[data-style="ticket"] .envelope-label p{ letter-spacing:.2em; }
-
   /* PARCHMENT — deckled edge, ornate double border, wax-drip seal */
   .envelope-wrap[data-style="parchment"] .letter{
     clip-path:polygon(0 1%,2% 0,98% 0,100% 1%,100% 99%,98% 100%,2% 100%,0 99%);
@@ -221,41 +184,6 @@
   }
   .envelope-wrap[data-style="parchment"] .seal span{ font-size:22px; }
   .envelope-wrap[data-style="parchment"] .flap{ box-shadow:0 2px 4px rgba(0,0,0,.15); }
-
-  /* MINIMAL — understated, hairline rule, no stamp or ornament */
-  .envelope-wrap[data-style="minimal"] .letter{ box-shadow:0 16px 32px rgba(0,0,0,.16); }
-  .envelope-wrap[data-style="minimal"] .letter-inner{ border:none; font-family:'Inter',sans-serif; padding:4px; }
-  .envelope-wrap[data-style="minimal"] .letter-to{ font-family:'Inter',sans-serif; font-weight:700; font-size:18px; color:var(--ink); }
-  .envelope-wrap[data-style="minimal"] .letter-msg{ font-style:normal; font-size:12.5px; }
-  .envelope-wrap[data-style="minimal"] .stamp{ display:none; }
-  .envelope-wrap[data-style="minimal"] .letter-cta{ text-align:left; margin:20px 0; border-top:1px solid var(--divider2); padding-top:16px; }
-  .envelope-wrap[data-style="minimal"] .letter-cta p{
-    font-style:normal; text-transform:none; letter-spacing:0; font-size:14px; font-weight:600; color:var(--ink-soft);
-  }
-  .envelope-wrap[data-style="minimal"] .letter-foot{ border-top:1px solid var(--divider2); }
-  .envelope-wrap[data-style="minimal"] .letter-foot .note{ font-style:normal; text-transform:none; letter-spacing:0; }
-  .envelope-wrap[data-style="minimal"] .letter-foot .from-lbl{ font-style:normal; }
-  .envelope-wrap[data-style="minimal"] .letter-foot .from{ font-family:'Inter',sans-serif; font-size:15px; font-weight:700; }
-  .envelope-wrap[data-style="minimal"] .seal{ width:14px; height:14px; box-shadow:none; border:none; }
-  .envelope-wrap[data-style="minimal"] .seal span{ display:none; }
-  .envelope-wrap[data-style="minimal"] .flap{ background:var(--paper); }
-  .envelope-wrap[data-style="minimal"] .envelope-body{ background:var(--paper); }
-  .envelope-wrap[data-style="minimal"] .envelope-body::before{ background:none; }
-  .envelope-wrap[data-style="minimal"] .envelope-label p{ font-weight:600; letter-spacing:.16em; color:var(--ink-soft); }
-
-  /* TYPEWRITER — ruled paper, monospace, ink-stamp seal */
-  .envelope-wrap[data-style="typewriter"] .letter{ background-image:repeating-linear-gradient(var(--paper) 0 27px, var(--divider2) 27px 28px); }
-  .envelope-wrap[data-style="typewriter"] .letter-inner{ font-family:'JetBrains Mono', monospace; border:none; padding:6px 18px; }
-  .envelope-wrap[data-style="typewriter"] .letter-to{ font-family:'JetBrains Mono', monospace; font-size:20px; letter-spacing:-.02em; }
-  .envelope-wrap[data-style="typewriter"] .letter-msg{ font-style:normal; font-size:12.5px; }
-  .envelope-wrap[data-style="typewriter"] .letter-cta p{ font-family:'JetBrains Mono', monospace; font-style:normal; }
-  .envelope-wrap[data-style="typewriter"] .letter-foot .from{ font-family:'JetBrains Mono', monospace; }
-  .envelope-wrap[data-style="typewriter"] .stamp{ border-radius:2px; }
-  .envelope-wrap[data-style="typewriter"] .seal{
-    border-radius:50%; border:3px dashed var(--accent-deep); background:transparent; transform:translate(-50%,-50%) rotate(-8deg);
-  }
-  .envelope-wrap[data-style="typewriter"].open .seal{ transform:translate(-50%,-50%) rotate(-8deg) scale(1.1); }
-  .envelope-wrap[data-style="typewriter"] .seal span{ color:var(--accent-deep); font-size:16px; }
 
   /* BOARDING PASS — striped header, gate/seat-style meta, notch + barcode stub */
   .envelope-wrap[data-style="boardingpass"] .letter{
@@ -503,42 +431,6 @@
   .envelope-wrap[data-style="portico"] .letter-foot > div{ text-align:center !important; }
   .envelope-wrap[data-style="portico"] .seal{ border-radius:6px; }
 
-  .envelope-wrap[data-style="ticket"] .letter{ border-radius:10px; }
-  .envelope-wrap[data-style="ticket"] .letter-inner{
-    font-family:'JetBrains Mono', monospace; border:none; padding:0;
-  }
-  .envelope-wrap[data-style="ticket"] .letter-to{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:19px; letter-spacing:-.01em; }
-  .envelope-wrap[data-style="ticket"] .letter-msg{ font-style:normal; font-size:12px; }
-  .envelope-wrap[data-style="ticket"] .stamp{
-    width:44px; height:44px; border-radius:50%; border:2px solid var(--accent); background:none;
-  }
-  .envelope-wrap[data-style="ticket"] .stamp .lbl{ display:none; }
-  .envelope-wrap[data-style="ticket"] .stamp .heart{ font-size:15px; color:var(--accent); }
-  .envelope-wrap[data-style="ticket"] .letter-cta{
-    position:relative; text-align:center; margin:18px 0; padding:10px 0;
-    border-top:2px dashed var(--divider2); border-bottom:2px dashed var(--divider2);
-  }
-  .envelope-wrap[data-style="ticket"] .letter-cta::before,
-  .envelope-wrap[data-style="ticket"] .letter-cta::after{
-    content:''; position:absolute; top:50%; transform:translateY(-50%);
-    width:16px; height:16px; border-radius:50%;
-    background:var(--paper); border:1.5px solid var(--divider2);
-    box-shadow:0 1px 2px rgba(0,0,0,.12);
-  }
-  .envelope-wrap[data-style="ticket"] .letter-cta::before{ left:-34px; }
-  .envelope-wrap[data-style="ticket"] .letter-cta::after{ right:-34px; }
-  .envelope-wrap[data-style="ticket"] .letter-cta p{
-    font-family:'JetBrains Mono', monospace; font-style:normal; letter-spacing:.16em; font-size:13px;
-  }
-  .envelope-wrap[data-style="ticket"] .letter-foot{ border-top:none; justify-content:space-between; }
-  .envelope-wrap[data-style="ticket"] .letter-foot .note{ font-style:normal; }
-  .envelope-wrap[data-style="ticket"] .letter-foot .from{ font-family:'JetBrains Mono', monospace; font-size:17px; }
-  .envelope-wrap[data-style="ticket"] .seal{
-    border-radius:6px; width:44px; height:44px; background:repeating-linear-gradient(90deg, var(--accent) 0 3px, var(--accent-deep) 3px 5px);
-  }
-  .envelope-wrap[data-style="ticket"] .seal span{ display:none; }
-  .envelope-wrap[data-style="ticket"] .envelope-label p{ letter-spacing:.2em; }
-
   /* ---------- palette swatches (editor UI) ---------- */
   .palette-swatch{
     width:30px; height:30px; border-radius:9999px; cursor:pointer; flex-shrink:0;
@@ -557,15 +449,8 @@
   .style-card .style-preview{ width:100%; height:38px; border-radius:6px; background:#fcfaf7; border:1px solid #e7dfd6; position:relative; overflow:hidden; }
   .style-card .style-preview span{ position:absolute; top:6px; left:6px; width:16px; height:4px; border-radius:2px; background:#3a1414; }
   .style-card .style-preview i{ position:absolute; bottom:6px; right:6px; width:10px; height:10px; border-radius:50%; background:#7c1d1d; font-style:normal; }
-  .style-card[data-style-preview="ticket"] .style-preview{ border-style:dashed; }
-  .style-card[data-style-preview="ticket"] .style-preview i{ border-radius:2px; width:12px; height:12px; background:repeating-linear-gradient(90deg,#7c1d1d 0 2px,#5c1212 2px 3px); }
   .style-card[data-style-preview="parchment"] .style-preview{ border-width:2px; border-style:double; }
   .style-card[data-style-preview="parchment"] .style-preview i{ border-radius:46% 54% 55% 45% / 55% 45% 55% 45%; }
-  .style-card[data-style-preview="minimal"] .style-preview{ border:none; box-shadow:0 0 0 1px #e7dfd6 inset; }
-  .style-card[data-style-preview="minimal"] .style-preview i{ display:none; }
-  .style-card[data-style-preview="minimal"] .style-preview span{ background:#5b4646; width:20px; }
-  .style-card[data-style-preview="typewriter"] .style-preview{ background-image:repeating-linear-gradient(#fcfaf7 0 9px, #f0d9d9 9px 10px); }
-  .style-card[data-style-preview="typewriter"] .style-preview i{ border-radius:50%; background:none; border:2px dashed #5c1212; width:12px; height:12px; }
   .style-card[data-style-preview="ribbon"] .style-preview{ overflow:hidden; }
   .style-card[data-style-preview="ribbon"] .style-preview i{ border-radius:0; width:28px; height:8px; background:#7c1d1d; top:2px; right:-8px; left:auto; transform:rotate(40deg); }
   .style-card[data-style-preview="polaroid"] .style-preview{ background:#fff; padding-bottom:6px; box-shadow:0 0 0 1px #e7dfd6 inset; }
@@ -951,21 +836,9 @@
             <div class="style-preview"><span></span><i></i></div>
             <span class="font-mono text-[9.5px] text-[#8A8F98]">classic</span>
           </div>
-          <div class="style-card" data-style="ticket" data-style-preview="ticket">
-            <div class="style-preview"><span></span><i></i></div>
-            <span class="font-mono text-[9.5px] text-[#8A8F98]">ticket</span>
-          </div>
           <div class="style-card" data-style="parchment" data-style-preview="parchment">
             <div class="style-preview"><span></span><i></i></div>
             <span class="font-mono text-[9.5px] text-[#8A8F98]">parchment</span>
-          </div>
-          <div class="style-card" data-style="minimal" data-style-preview="minimal">
-            <div class="style-preview"><span></span><i></i></div>
-            <span class="font-mono text-[9.5px] text-[#8A8F98]">minimal</span>
-          </div>
-          <div class="style-card" data-style="typewriter" data-style-preview="typewriter">
-            <div class="style-preview"><span></span><i></i></div>
-            <span class="font-mono text-[9.5px] text-[#8A8F98]">typewriter</span>
           </div>
           <div class="style-card" data-style="boardingpass" data-style-preview="boardingpass">
             <div class="style-preview"><span></span><i></i></div>
@@ -1116,6 +989,32 @@
   </div>
 </div>
 
+<!-- PHOTO NOTICE MODAL -->
+<div class="modal-overlay" id="photoNoticeModal">
+  <div class="modal-card modal-card-dark">
+    <div class="modal-head">
+      <div class="modal-title">Quick heads up</div>
+      <button class="modal-close" id="photoNoticeCloseX" data-close="photoNoticeModal" aria-label="Close">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-badge-row">
+      <div class="modal-badge">📎</div>
+      <div class="modal-badge-text">
+        <p>Before you upload</p>
+        <p>Link will get long</p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <p>Adding photos makes the share link a lot longer, since each picture is packed directly into it. Some apps (chat messengers, SMS) may cut long links short or refuse to open them. To be safe, we'd suggest sending the link through Gmail — or any email — instead.</p>
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button type="button" class="upload-row-btn" id="photoNoticeCancel" style="flex:1;">Cancel</button>
+        <button type="button" class="intro-open-btn" id="photoNoticeConfirm" style="flex:1;">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ABOUT MODAL -->
 <div class="modal-overlay" id="aboutModal">
   <div class="modal-card modal-card-dark">
@@ -1222,7 +1121,7 @@ let photoData = null;
 const photoInput = $('photoInput'), photoPreview = $('photoPreview');
 const stampPhoto = $('stampPhoto'), stampLbl = $('stampLbl'), stampHeart = $('stampHeart');
 const photoUploadBtn = $('photoUploadBtn'), photoRemoveBtn = $('photoRemoveBtn');
-photoUploadBtn.addEventListener('click', () => photoInput.click());
+photoUploadBtn.addEventListener('click', () => openPhotoNotice(photoInput));
 
 function applyPhoto(dataUrl){
   photoData = dataUrl;
@@ -1268,7 +1167,31 @@ photoInput.addEventListener('change', async (e) => {
     applyPhoto(compressed);
   }catch(err){
     showToast('Could not load that photo');
+  }finally{
+    photoInput.value = '';
   }
+});
+
+/* shared "before you upload" notice — works for both the single photo and scatter photos */
+let pendingUploadInput = null;
+function openPhotoNotice(inputEl){
+  pendingUploadInput = inputEl;
+  openModal('photoNoticeModal');
+}
+
+$('photoNoticeConfirm')?.addEventListener('click', () => {
+  closeModal('photoNoticeModal');
+  if(pendingUploadInput) pendingUploadInput.click();
+  pendingUploadInput = null;
+});
+
+$('photoNoticeCancel')?.addEventListener('click', () => {
+  closeModal('photoNoticeModal');
+  pendingUploadInput = null;
+});
+$('photoNoticeCloseX')?.addEventListener('click', () => {
+  closeModal('photoNoticeModal');
+  pendingUploadInput = null;
 });
 photoRemoveBtn.addEventListener('click', () => {
   photoData = null;
@@ -1405,7 +1328,7 @@ function renderScatterThumbs(){
   scatterUploadBtn.disabled = scatterImages.length >= MAX_SCATTER;
   scatterUploadBtn.style.opacity = scatterImages.length >= MAX_SCATTER ? '.5' : '1';
 }
-scatterUploadBtn.addEventListener('click', () => scatterInput.click());
+scatterUploadBtn.addEventListener('click', () => openPhotoNotice(scatterInput));
 scatterInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []).slice(0, MAX_SCATTER - scatterImages.length);
   scatterInput.value = '';
@@ -1530,41 +1453,62 @@ $('copyNowBtn').addEventListener('click', async () => {
 $('aboutBtn').addEventListener('click', () => openModal('aboutModal'));
 
 /* download as image */
-$('downloadBtn').addEventListener('click', async () => {
+async function captureCard(isOpen){
   const capture = $('captureArea');
+  if(!isOpen){
+    // Closed envelope sits fully inside its own box — no special cropping needed.
+    return html2canvas(capture, { backgroundColor: null, scale: 3 });
+  }
+  // Open letter translates outside captureArea's own box (translateY(-58%)),
+  // so we need to capture a taller region, shifted up, or html2canvas clips it.
+  const letterEl = capture.querySelector('.letter');
+  const captureRect = capture.getBoundingClientRect();
+  const letterRect = letterEl.getBoundingClientRect();
+  const overflowTop = Math.max(0, captureRect.top - letterRect.top);
+  const overflowBottom = Math.max(0, letterRect.bottom - captureRect.bottom);
+  return html2canvas(capture, {
+    backgroundColor: null,
+    scale: 3,
+    y: -overflowTop,
+    height: capture.offsetHeight + overflowTop + overflowBottom
+  });
+}
+
+function downloadCanvas(canvas, filename){
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+$('downloadBtn').addEventListener('click', async () => {
   const wasOpen = envelope.classList.contains('open');
-  envelope.classList.add('open');
   const styleTag = document.createElement('style');
   styleTag.id = 'freeze';
-  styleTag.textContent = '.letter, .seal, .flap { transition: none !important; }';
+  styleTag.textContent = '.letter, .seal, .flap, .scatter-photo, .prompt { transition: none !important; }';
   document.head.appendChild(styleTag);
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try{
-    // The open letter translates outside captureArea's own box (translateY(-58%)),
-    // so we need to capture a taller region, shifted up, or html2canvas clips it.
-    const letterEl = capture.querySelector('.letter');
-    const captureRect = capture.getBoundingClientRect();
-    const letterRect = letterEl.getBoundingClientRect();
-    const overflowTop = Math.max(0, captureRect.top - letterRect.top);
-    const overflowBottom = Math.max(0, letterRect.bottom - captureRect.bottom);
-
-    const canvas = await html2canvas(capture, {
-      backgroundColor: null,
-      scale: 3,
-      y: -overflowTop,
-      height: capture.offsetHeight + overflowTop + overflowBottom
-    });
-    const link = document.createElement('a');
     const safeName = (toInput.value.trim() || 'letter').toLowerCase().replace(/[^a-z0-9]+/g,'-');
-    link.download = 'valentine-for-' + safeName + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    showToast('Image downloaded, already opened');
+
+    // 1. closed card
+    envelope.classList.remove('open');
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const closedCanvas = await captureCard(false);
+    downloadCanvas(closedCanvas, 'valentine-for-' + safeName + '-closed.png');
+
+    // 2. opened card
+    envelope.classList.add('open');
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const openCanvas = await captureCard(true);
+    await new Promise(r => setTimeout(r, 250)); // let the first download start before triggering the second
+    downloadCanvas(openCanvas, 'valentine-for-' + safeName + '-opened.png');
+
+    showToast('Downloaded both closed and opened images');
   }catch(e){
     showToast('Could not generate image');
   }finally{
     document.getElementById('freeze').remove();
-    if(!wasOpen) envelope.classList.remove('open');
+    envelope.classList.toggle('open', wasOpen);
   }
 });
 
